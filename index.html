@@ -71,10 +71,10 @@
 
 <div id="intro">
   <h1>Music Visualiser</h1>
-  <p>Start Spotify playing through the iPhone speaker (not AirPods), then tap Start and allow the microphone.</p>
+  <p>Play music from another device nearby, such as a computer, TV or speaker, then tap Start and allow the microphone. Safari pauses music playing on this phone while the mic is on.</p>
   <button id="start" type="button">Start</button>
   <div id="err" hidden></div>
-  <div id="ver">Version 5</div>
+  <div id="ver">Version 6</div>
 </div>
 
 <div id="diag" hidden></div>
@@ -174,9 +174,6 @@
 
       // Ask for the mic before creating the audio engine: on iPhone, turning the mic on
       // switches the phone's audio mode, which can leave an earlier audio engine stuck.
-      // Experiment: Safari's Audio Session API. Asking for play-and-record up front may let
-      // Spotify keep playing alongside the mic instead of being interrupted.
-      try { if (navigator.audioSession) navigator.audioSession.type = 'play-and-record'; } catch (_) {}
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
       });
