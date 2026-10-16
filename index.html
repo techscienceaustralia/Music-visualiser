@@ -129,7 +129,7 @@
   <button id="start" type="button">START</button>
   <p id="tips">Tap right for the next look, left for the previous one.<br>Press and hold for settings.</p>
   <div id="err" hidden></div>
-  <div id="ver">Version 10</div>
+  <div id="ver">Version 11</div>
 </div>
 
 <div id="vol" hidden><div id="volNum">0</div><div id="volLbl">LEVEL</div></div>
@@ -149,6 +149,10 @@
         <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M17 40h17a4 4 0 0 0 4-3.4l2.4-14A4 4 0 0 0 36.5 18H28l1.6-6.6c.6-2.6-1.4-5.1-4-5.1L17 20v20Zm-9 0h5V20H8z" fill="none" stroke="url(#acid)" stroke-width="3.2" stroke-linejoin="round"/></svg>
         <span id="upLbl">Love it</span>
       </button>
+    </div>
+    <div class="row">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5l3.8 7.8 8.5 1.2-6.2 6 1.5 8.5L16 23l-7.6 4 1.5-8.5-6.2-6 8.5-1.2z" fill="none" stroke="url(#acid)" stroke-width="2.4" stroke-linejoin="round"/></svg>
+      <label for="topOnly">Top rated only <small id="topCount" style="color:var(--dim)"></small></label><input id="topOnly" class="switch" type="checkbox">
     </div>
     <div class="row">
       <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 27s-11-6.6-11-14a6 6 0 0 1 11-3.3A6 6 0 0 1 27 13c0 7.4-11 14-11 14Z" fill="none" stroke="url(#acid)" stroke-width="2.6" stroke-linejoin="round"/></svg>
@@ -196,6 +200,9 @@
   const sparse = new Set(store.get('mv.sparse', []));
   let favOnly = store.get('mv.favOnly', false);
   let showMeter = store.get('mv.showMeter', false);
+  // Each MilkDrop preset file carries its own 0-5 star rating; "top rated" means 4 or 5 stars.
+  let topOnly = store.get('mv.topOnly', true);
+  const isTop = n => (presets[n].baseVals && presets[n].baseVals.rating >= 4) || liked.has(n);
   let secs = store.get('mv.secs', 20);
   let sens = store.get('mv.sens', 6);
 
@@ -214,7 +221,7 @@
 
   function pool() {
     if (favOnly && liked.size) return names.filter(n => liked.has(n));
-    const p = names.filter(n => !hidden.has(n) && !sparse.has(n));
+    const p = names.filter(n => !hidden.has(n) && !sparse.has(n) && (!topOnly || isTop(n)));
     return p.length ? p : names.filter(n => !hidden.has(n));
   }
 
@@ -404,6 +411,8 @@
     $('up').classList.toggle('on', liked.has(current));
     $('upLbl').textContent = liked.has(current) ? 'Loved' : 'Love it';
     $('favOnly').checked = favOnly;
+    $('topOnly').checked = topOnly;
+    $('topCount').textContent = '(' + names.filter(n => isTop(n) && !hidden.has(n)).length + ' looks)';
     $('showMeter').checked = showMeter;
     $('secs').value = secs;
     $('sens').value = sens;
@@ -431,6 +440,10 @@
   $('favOnly').addEventListener('change', e => {
     if (e.target.checked && !liked.size) { e.target.checked = false; toast('Tap Love it on looks you like first'); return; }
     favOnly = e.target.checked; store.set('mv.favOnly', favOnly);
+    history = history.slice(0, histPos + 1);
+  });
+  $('topOnly').addEventListener('change', e => {
+    topOnly = e.target.checked; store.set('mv.topOnly', topOnly);
     history = history.slice(0, histPos + 1);
   });
   $('showMeter').addEventListener('change', e => {
