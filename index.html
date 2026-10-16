@@ -92,6 +92,7 @@
   .row label { flex: 1; }
   .row output { font-weight: 700; font-variant-numeric: tabular-nums; min-width: 3.5ch; text-align: right; color: var(--lime); }
   .timeRow { flex-wrap: wrap; }
+  .ends { width: 100%; display: flex; justify-content: space-between; font-size: .75rem; color: var(--dim); margin-top: -2px; }
   input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 10px; border-radius: 5px; background: var(--stripe); margin: 6px 0 2px; }
   input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; border-radius: 50%; background: #fff; border: 4px solid var(--magenta); box-shadow: 0 0 14px var(--magenta); }
   input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 4px solid var(--magenta); }
@@ -126,10 +127,10 @@
   <button id="start" type="button">START</button>
   <p id="tips">Tap right for the next look, left for the previous one.<br>Press and hold for settings.</p>
   <div id="err" hidden></div>
-  <div id="ver">Version 8</div>
+  <div id="ver">Version 9</div>
 </div>
 
-<div id="vol" hidden><div id="volNum">0</div><div id="volLbl">MIC IN</div></div>
+<div id="vol" hidden><div id="volNum">0</div><div id="volLbl">LEVEL</div></div>
 <div id="muted" hidden>Safari has paused the microphone. Tap the crossed-out mic icon in the address bar to turn it back on.</div>
 <div id="toast" class="faded"></div>
 
@@ -159,6 +160,7 @@
       <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M12 6a4 4 0 0 1 8 0v9a4 4 0 0 1-8 0zM7 14a9 9 0 0 0 18 0M16 23v5" fill="none" stroke="url(#acid)" stroke-width="2.6" stroke-linecap="round"/></svg>
       <label for="sens">Mic sensitivity</label><output id="sensOut" for="sens"></output>
       <input id="sens" type="range" min="1" max="10" step="1">
+      <div class="ends"><span>Less sensitive</span><span>More sensitive</span></div>
     </div>
     <div class="row timeRow">
       <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4a12 12 0 1 0 12 12M16 4a12 12 0 0 1 12 12M16 9v7l5 3" fill="none" stroke="url(#acid)" stroke-width="2.6" stroke-linecap="round"/></svg>
@@ -179,7 +181,7 @@
   const canvas = $('c');
   // A look is "sparse" when most of the screen stays dark; those get skipped automatically.
   const SPARSE_LIT_SHARE = 0.35, SPARSE_SECONDS = 5, LONG_PRESS_MS = 550;
-  let ctx, viz, rawAnalyser, gain, gainDb = 12, levelDb = -50, floorDb = -60, presets = {}, names = [], current = null, lastSwitch = 0, wakeLock = null, toastTimer, micTrack;
+  let ctx, viz, rawAnalyser, outAnalyser, gain, gainDb = 12, levelDb = -50, floorDb = -60, presets = {}, names = [], current = null, lastSwitch = 0, wakeLock = null, toastTimer, micTrack;
   let sparseSince = 0, lastProbe = 0, volSmooth = 0, lastVol = 0, history = [], histPos = -1;
 
   // Settings, likes and hides are saved in this browser on this phone, so they survive closing the page.
@@ -266,6 +268,8 @@
       limiter.threshold.value = -14; limiter.knee.value = 10; limiter.ratio.value = 8;
       limiter.attack.value = 0.003; limiter.release.value = 0.2;
       src.connect(gain); gain.connect(limiter);
+      outAnalyser = ctx.createAnalyser(); outAnalyser.fftSize = 1024;
+      limiter.connect(outAnalyser);
       rawAnalyser = ctx.createAnalyser(); rawAnalyser.fftSize = 1024;
       src.connect(rawAnalyser);
       if (ctx.state !== 'running') await ctx.resume();
@@ -314,9 +318,9 @@
     levelDb += (db - levelDb) * (db > levelDb ? 0.08 : 0.01);           // follows the music, rises fast, falls slowly
     floorDb = db < floorDb ? floorDb + (db - floorDb) * 0.2 : floorDb + 0.0005; // tracks the quietest moments
     floorDb = Math.min(floorDb, levelDb - 12);                            // so steady music isn't mistaken for noise
-    const target = -26 + sens * 1.4;                                      // sens 6 = about -18 dB after boosting
-    const maxBoost = 6 + sens * 3;                                        // sens 6 = up to +24 dB
-    const noiseCap = -46 + sens * 1.2 - floorDb;                          // keep background noise below this
+    const target = -24 + sens * 1.2;                                      // sens 6 = about -17 dB after boosting
+    const maxBoost = 10 + sens * 4;                                       // sens 6 = up to +34 dB, sens 10 = +50 dB
+    const noiseCap = -50 + sens * 3 - floorDb;                            // background noise is allowed up to this
     const want = Math.max(0, Math.min(target - levelDb, maxBoost, noiseCap));
     gainDb += (want - gainDb) * (want < gainDb ? 0.15 : 0.02);            // turns down quickly, up gently
     gain.gain.setTargetAtTime(Math.pow(10, gainDb / 20), ctx.currentTime, 0.05);
@@ -341,8 +345,11 @@
     autoLevel(db);
 
     if (showMeter) {
-      // Mic input 0-100: -60 dB = 0, 0 dB = 100.
-      const vol = Math.max(0, Math.min(100, (db + 60) / 60 * 100));
+      // Level the visuals hear after boosting, 0-100: -60 dB = 0, 0 dB = 100.
+      outAnalyser.getFloatTimeDomainData(fbuf);
+      let s2 = 0; for (let i = 0; i < fbuf.length; i++) s2 += fbuf[i] * fbuf[i];
+      const odb = 20 * Math.log10(Math.sqrt(s2 / fbuf.length) + 1e-9);
+      const vol = Math.max(0, Math.min(100, (odb + 60) / 60 * 100));
       volSmooth = vol > volSmooth ? vol : volSmooth * 0.9 + vol * 0.1;
       if (t - lastVol > 100) {
         lastVol = t;
