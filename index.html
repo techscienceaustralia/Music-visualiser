@@ -58,6 +58,10 @@
   #toast { position: fixed; top: 38%; left: 50%; transform: translate(-50%, -50%); padding: 14px 20px; border-radius: 16px; background: var(--glass); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
     font-size: 1rem; text-align: center; max-width: 80vw; line-height: 1.4; pointer-events: none; transition: opacity .4s; }
   #toast.faded { opacity: 0; }
+  #vol { position: fixed; top: calc(max(10px, env(safe-area-inset-top)) + 24px); right: max(14px, env(safe-area-inset-right)); min-width: 64px; padding: 6px 10px; border-radius: 14px;
+    background: var(--glass); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); text-align: center; pointer-events: none; }
+  #volNum { font: 700 1.9rem/1 ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; color: var(--ok); }
+  #volLbl { font-size: .6rem; letter-spacing: .08em; color: var(--dim); margin-top: 2px; }
   #muted { position: fixed; top: calc(max(10px, env(safe-area-inset-top)) + 26px); left: 16px; right: 16px; padding: 12px 14px; border-radius: 14px; background: #3a2400; color: var(--warn); font-size: .9rem; line-height: 1.4; text-align: center; }
   @media (prefers-reduced-motion: reduce) { #bar, #diag, #toast { transition: none; } }
 </style>
@@ -70,10 +74,11 @@
   <p>Start Spotify playing through the iPhone speaker (not AirPods), then tap Start and allow the microphone.</p>
   <button id="start" type="button">Start</button>
   <div id="err" hidden></div>
-  <div id="ver">Version 3</div>
+  <div id="ver">Version 4</div>
 </div>
 
 <div id="diag" hidden></div>
+<div id="vol" hidden><div id="volNum">0</div><div id="volLbl">MIC IN</div></div>
 <div id="muted" hidden>Safari has paused the microphone. Tap the crossed-out mic icon in the address bar to turn it back on.</div>
 <div id="toast" class="faded"></div>
 
@@ -98,7 +103,7 @@
   const SWITCH_MS = 22000, BLEND_S = 2.7;
   // A look is "sparse" when most of the screen stays dark; those get skipped automatically.
   const SPARSE_LIT_SHARE = 0.35, SPARSE_SECONDS = 5;
-  let ctx, viz, analyser, presets = {}, names = [], current = null, lastSwitch = 0, wakeLock = null, uiTimer, toastTimer, micTrack;
+  let ctx, viz, analyser, presets = {}, names = [], current = null, lastSwitch = 0, wakeLock = null, rawAnalyser, volSmooth = 0, lastVol = 0, uiTimer, toastTimer, micTrack;
   let lastDiag = 0, peakHold = 0, sparseSince = 0, lastProbe = 0;
 
   // Likes and hides are remembered on this phone only.
@@ -179,6 +184,8 @@
       // Mic sounds quieter than a line signal, so boost it before the visuals see it.
       const gain = ctx.createGain(); gain.gain.value = 3;
       src.connect(gain);
+      rawAnalyser = ctx.createAnalyser(); rawAnalyser.fftSize = 1024;
+      src.connect(rawAnalyser);
       analyser = ctx.createAnalyser(); analyser.fftSize = 512;
       gain.connect(analyser);
       if (ctx.state !== 'running') await ctx.resume();
@@ -192,7 +199,7 @@
       names = Object.keys(presets);
       nextPreset(0);
 
-      $('intro').hidden = true; $('bar').hidden = false; $('diag').hidden = false;
+      $('intro').hidden = true; $('bar').hidden = false; $('diag').hidden = false; $('vol').hidden = false;
       $('muted').hidden = !micTrack.muted;
       showUi(); keepAwake();
       requestAnimationFrame(loop);
@@ -218,7 +225,7 @@
     } catch (_) { return 1; }
   }
 
-  const buf = new Uint8Array(512);
+  const buf = new Uint8Array(512), fbuf = new Float32Array(1024);
   function loop(t) {
     viz.render();
 
@@ -241,6 +248,19 @@
       $('diag').textContent = 'Audio: ' + ctx.state + '  ·  Mic: ' + (micTrack ? (micTrack.muted ? 'PAUSED' : micTrack.readyState) : 'none') +
         '  ·  Level: ' + Math.round(peakHold / 128 * 100) + '%';
       peakHold = 0; lastDiag = t;
+    }
+
+    // Mic input 0-100: loudness of the raw mic signal on a decibel scale (-60 dB = 0, 0 dB = 100).
+    rawAnalyser.getFloatTimeDomainData(fbuf);
+    let sum = 0; for (let i = 0; i < fbuf.length; i++) sum += fbuf[i] * fbuf[i];
+    const db = 20 * Math.log10(Math.sqrt(sum / fbuf.length) + 1e-9);
+    const vol = Math.max(0, Math.min(100, (db + 60) / 60 * 100));
+    volSmooth = vol > volSmooth ? vol : volSmooth * 0.9 + vol * 0.1;
+    if (t - lastVol > 100) {
+      lastVol = t;
+      const v = Math.round(volSmooth);
+      $('volNum').textContent = v;
+      $('volNum').style.color = micTrack && micTrack.muted ? 'var(--warn)' : v < 5 ? 'var(--dim)' : 'var(--ok)';
     }
 
     if (t - lastSwitch > SWITCH_MS) nextPreset();
