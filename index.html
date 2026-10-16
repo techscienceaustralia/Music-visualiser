@@ -44,6 +44,7 @@
   #name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #hint { position: fixed; top: max(14px, env(safe-area-inset-top)); left: 0; right: 0; text-align: center; font-size: .8rem; color: var(--dim); transition: opacity .6s; pointer-events: none; }
   #hint.faded { opacity: 0; }
+  #diag { position: fixed; top: calc(max(14px, env(safe-area-inset-top)) + 22px); left: 12px; right: 12px; text-align: center; font: 600 .75rem ui-monospace, Menlo, monospace; color: var(--ok); text-shadow: 0 1px 3px #000; pointer-events: none; }
   @media (prefers-reduced-motion: reduce) { #hud, #hint { transition: none; } }
 </style>
 </head>
@@ -57,6 +58,7 @@
   <div id="err" hidden></div>
 </div>
 
+<div id="diag" hidden></div>
 <div id="hint" hidden>Tap: next look &nbsp;·&nbsp; Hold: keep this look</div>
 <div id="hud" hidden>
   <div id="meter"><div id="meterFill"></div></div>
@@ -70,7 +72,7 @@
   const $ = id => document.getElementById(id);
   const canvas = $('c');
   const SWITCH_MS = 22000, BLEND_S = 2.7;
-  let ctx, viz, analyser, presets, names = [], current = -1, locked = false, lastSwitch = 0, wakeLock = null, hudTimer;
+  let ctx, viz, analyser, presets, names = [], current = -1, locked = false, lastSwitch = 0, wakeLock = null, hudTimer, micTrack, lastDiag = 0, peakHold = 0;
 
   function showError(msg) { const e = $('err'); e.textContent = msg; e.hidden = false; }
 
@@ -107,17 +109,21 @@
       const bp = window.butterchurnPresets && (window.butterchurnPresets.default || window.butterchurnPresets);
       if (!bc || !bp) throw new Error('The visual engine did not load. Check your internet connection and reload.');
 
-      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      // Ask for the mic before creating the audio engine: on iPhone, turning the mic on
+      // switches the phone's audio mode, which can leave an earlier audio engine stuck.
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
       });
+      micTrack = stream.getAudioTracks()[0];
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
       const src = ctx.createMediaStreamSource(stream);
       // Mic sounds quieter than a line signal, so boost it a little before the visuals see it.
-      const gain = ctx.createGain(); gain.gain.value = 2.2;
+      const gain = ctx.createGain(); gain.gain.value = 3;
       src.connect(gain);
       analyser = ctx.createAnalyser(); analyser.fftSize = 512;
       gain.connect(analyser);
-      if (ctx.state === 'suspended') await ctx.resume();
+      if (ctx.state !== 'running') await ctx.resume();
+      ctx.onstatechange = () => { if (ctx.state !== 'running' && document.visibilityState === 'visible') ctx.resume().catch(() => {}); };
 
       size();
       viz = bc.createVisualizer(ctx, canvas, { width: canvas.width, height: canvas.height, pixelRatio: 1, textureRatio: 1 });
@@ -127,7 +133,7 @@
       names = Object.keys(presets);
       nextPreset(0);
 
-      $('intro').hidden = true; $('hud').hidden = false; $('hint').hidden = false;
+      $('intro').hidden = true; $('hud').hidden = false; $('hint').hidden = false; $('diag').hidden = false;
       pokeHud(); keepAwake();
       requestAnimationFrame(loop);
     } catch (e) {
@@ -145,6 +151,14 @@
     analyser.getByteTimeDomainData(buf);
     let peak = 0; for (let i = 0; i < buf.length; i++) { const v = Math.abs(buf[i] - 128); if (v > peak) peak = v; }
     $('meterFill').style.width = Math.min(100, peak / 128 * 140) + '%';
+    peakHold = Math.max(peakHold, peak);
+    if (t - lastDiag > 400) {
+      const st = micTrack && micTrack.getSettings ? micTrack.getSettings() : {};
+      const ec = st.echoCancellation === undefined ? '?' : (st.echoCancellation ? 'on' : 'off');
+      $('diag').textContent = 'Audio: ' + ctx.state + '  ·  Mic: ' + (micTrack ? micTrack.readyState + (micTrack.muted ? ' (muted)' : '') : 'none') +
+        '  ·  Level: ' + Math.round(peakHold / 128 * 100) + '%  ·  Echo cancel: ' + ec;
+      peakHold = 0; lastDiag = t;
+    }
     if (!locked && t - lastSwitch > SWITCH_MS) nextPreset();
     requestAnimationFrame(loop);
   }
