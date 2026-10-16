@@ -126,7 +126,7 @@
   <button id="start" type="button">START</button>
   <p id="tips">Tap right for the next look, left for the previous one.<br>Press and hold for settings.</p>
   <div id="err" hidden></div>
-  <div id="ver">Version 7</div>
+  <div id="ver">Version 8</div>
 </div>
 
 <div id="vol" hidden><div id="volNum">0</div><div id="volLbl">MIC IN</div></div>
@@ -156,6 +156,11 @@
       <label for="showMeter">Show mic level</label><input id="showMeter" class="switch" type="checkbox">
     </div>
     <div class="row timeRow">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M12 6a4 4 0 0 1 8 0v9a4 4 0 0 1-8 0zM7 14a9 9 0 0 0 18 0M16 23v5" fill="none" stroke="url(#acid)" stroke-width="2.6" stroke-linecap="round"/></svg>
+      <label for="sens">Mic sensitivity</label><output id="sensOut" for="sens"></output>
+      <input id="sens" type="range" min="1" max="10" step="1">
+    </div>
+    <div class="row timeRow">
       <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4a12 12 0 1 0 12 12M16 4a12 12 0 0 1 12 12M16 9v7l5 3" fill="none" stroke="url(#acid)" stroke-width="2.6" stroke-linecap="round"/></svg>
       <label for="secs">Time per look</label><output id="secsOut" for="secs"></output>
       <input id="secs" type="range" min="2" max="60" step="1">
@@ -174,7 +179,7 @@
   const canvas = $('c');
   // A look is "sparse" when most of the screen stays dark; those get skipped automatically.
   const SPARSE_LIT_SHARE = 0.35, SPARSE_SECONDS = 5, LONG_PRESS_MS = 550;
-  let ctx, viz, rawAnalyser, presets = {}, names = [], current = null, lastSwitch = 0, wakeLock = null, toastTimer, micTrack;
+  let ctx, viz, rawAnalyser, gain, gainDb = 12, levelDb = -50, floorDb = -60, presets = {}, names = [], current = null, lastSwitch = 0, wakeLock = null, toastTimer, micTrack;
   let sparseSince = 0, lastProbe = 0, volSmooth = 0, lastVol = 0, history = [], histPos = -1;
 
   // Settings, likes and hides are saved in this browser on this phone, so they survive closing the page.
@@ -188,6 +193,7 @@
   let favOnly = store.get('mv.favOnly', false);
   let showMeter = store.get('mv.showMeter', false);
   let secs = store.get('mv.secs', 20);
+  let sens = store.get('mv.sens', 6);
 
   const saveSets = () => { store.set('mv.liked', [...liked]); store.set('mv.hidden', [...hidden]); store.set('mv.sparse', [...sparse]); };
   const blendFor = () => Math.min(2.7, secs * 0.4);
@@ -253,9 +259,13 @@
       micTrack.onmute = micTrack.onunmute = () => { $('muted').hidden = !micTrack.muted; };
       ctx = new (window.AudioContext || window.webkitAudioContext)();
       const src = ctx.createMediaStreamSource(stream);
-      // Mic sounds quieter than a line signal, so boost it before the visuals see it.
-      const gain = ctx.createGain(); gain.gain.value = 3;
-      src.connect(gain);
+      // Automatic level control: the gain rises for quiet music and falls for loud music,
+      // and a limiter after it stops loud peaks from turning into distorted noise.
+      gain = ctx.createGain(); gain.gain.value = 4;
+      const limiter = ctx.createDynamicsCompressor();
+      limiter.threshold.value = -14; limiter.knee.value = 10; limiter.ratio.value = 8;
+      limiter.attack.value = 0.003; limiter.release.value = 0.2;
+      src.connect(gain); gain.connect(limiter);
       rawAnalyser = ctx.createAnalyser(); rawAnalyser.fftSize = 1024;
       src.connect(rawAnalyser);
       if (ctx.state !== 'running') await ctx.resume();
@@ -263,7 +273,7 @@
 
       size();
       viz = bc.createVisualizer(ctx, canvas, { width: canvas.width, height: canvas.height, pixelRatio: 1, textureRatio: 1 });
-      viz.connectAudio(gain);
+      viz.connectAudio(limiter);
 
       packs.forEach(p => Object.assign(presets, p.getPresets()));
       names = Object.keys(presets);
@@ -297,6 +307,20 @@
   }
 
   const fbuf = new Float32Array(1024);
+
+  // Sensitivity 1-10 sets how loud the visuals "hear" the music and how much boost is allowed.
+  // The boost never lifts the room's background noise above a quiet level, so silence stays calm.
+  function autoLevel(db) {
+    levelDb += (db - levelDb) * (db > levelDb ? 0.08 : 0.01);           // follows the music, rises fast, falls slowly
+    floorDb = db < floorDb ? floorDb + (db - floorDb) * 0.2 : floorDb + 0.0005; // tracks the quietest moments
+    floorDb = Math.min(floorDb, levelDb - 12);                            // so steady music isn't mistaken for noise
+    const target = -26 + sens * 1.4;                                      // sens 6 = about -18 dB after boosting
+    const maxBoost = 6 + sens * 3;                                        // sens 6 = up to +24 dB
+    const noiseCap = -46 + sens * 1.2 - floorDb;                          // keep background noise below this
+    const want = Math.max(0, Math.min(target - levelDb, maxBoost, noiseCap));
+    gainDb += (want - gainDb) * (want < gainDb ? 0.15 : 0.02);            // turns down quickly, up gently
+    gain.gain.setTargetAtTime(Math.pow(10, gainDb / 20), ctx.currentTime, 0.05);
+  }
   function loop(t) {
     viz.render();
 
@@ -310,11 +334,14 @@
       } else sparseSince = 0;
     }
 
+    // Measure the raw mic loudness every frame (decibels; about -60 is silence, 0 is the loudest).
+    rawAnalyser.getFloatTimeDomainData(fbuf);
+    let sum = 0; for (let i = 0; i < fbuf.length; i++) sum += fbuf[i] * fbuf[i];
+    const db = 20 * Math.log10(Math.sqrt(sum / fbuf.length) + 1e-9);
+    autoLevel(db);
+
     if (showMeter) {
-      // Mic input 0-100: loudness of the raw mic signal on a decibel scale (-60 dB = 0, 0 dB = 100).
-      rawAnalyser.getFloatTimeDomainData(fbuf);
-      let sum = 0; for (let i = 0; i < fbuf.length; i++) sum += fbuf[i] * fbuf[i];
-      const db = 20 * Math.log10(Math.sqrt(sum / fbuf.length) + 1e-9);
+      // Mic input 0-100: -60 dB = 0, 0 dB = 100.
       const vol = Math.max(0, Math.min(100, (db + 60) / 60 * 100));
       volSmooth = vol > volSmooth ? vol : volSmooth * 0.9 + vol * 0.1;
       if (t - lastVol > 100) {
@@ -359,6 +386,8 @@
     $('favOnly').checked = favOnly;
     $('showMeter').checked = showMeter;
     $('secs').value = secs;
+    $('sens').value = sens;
+    $('sensOut').textContent = sens;
     $('secsOut').textContent = secs + ' s';
   }
   function openMenu() { renderMenu(); $('menuWrap').hidden = false; }
@@ -387,6 +416,10 @@
   $('showMeter').addEventListener('change', e => {
     showMeter = e.target.checked; store.set('mv.showMeter', showMeter);
     if (viz) $('vol').hidden = !showMeter;
+  });
+  $('sens').addEventListener('input', e => {
+    sens = Number(e.target.value); store.set('mv.sens', sens);
+    $('sensOut').textContent = sens;
   });
   $('secs').addEventListener('input', e => {
     secs = Number(e.target.value); store.set('mv.secs', secs);
