@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Visualiser">
 <meta name="theme-color" content="#000000">
-<title>Mic Visualiser Test</title>
+<title>Music Visualiser</title>
 <style>
   :root {
     --bg: #000;
@@ -35,17 +35,31 @@
   #start:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
   #err { color: var(--warn); max-width: 34ch; font-size: .95rem; line-height: 1.4; }
 
-  #hud { position: fixed; left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); bottom: max(12px, env(safe-area-inset-bottom));
-    display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 16px; background: var(--glass); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
-    font-size: .8rem; color: var(--dim); transition: opacity .6s; }
-  #hud.faded { opacity: 0; pointer-events: none; }
-  #meter { flex: 0 0 70px; height: 8px; border-radius: 4px; background: rgba(255,255,255,.12); overflow: hidden; }
+
+  #ver { position: absolute; bottom: max(16px, env(safe-area-inset-bottom)); left: 0; right: 0; font-size: .75rem; color: var(--dim); }
+
+  #bar { position: fixed; left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); bottom: max(12px, env(safe-area-inset-bottom));
+    display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border-radius: 20px; background: var(--glass); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+    transition: opacity .5s, transform .5s; }
+  #bar.faded { opacity: 0; transform: translateY(12px); pointer-events: none; }
+  #row1 { display: flex; align-items: center; gap: 10px; font-size: .8rem; color: var(--dim); }
+  #meter { flex: 0 0 60px; height: 8px; border-radius: 4px; background: rgba(255,255,255,.12); overflow: hidden; }
   #meterFill { height: 100%; width: 0; background: linear-gradient(90deg, var(--ok), var(--accent)); }
   #name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  #hint { position: fixed; top: max(14px, env(safe-area-inset-top)); left: 0; right: 0; text-align: center; font-size: .8rem; color: var(--dim); transition: opacity .6s; pointer-events: none; }
-  #hint.faded { opacity: 0; }
-  #diag { position: fixed; top: calc(max(14px, env(safe-area-inset-top)) + 22px); left: 12px; right: 12px; text-align: center; font: 600 .75rem ui-monospace, Menlo, monospace; color: var(--ok); text-shadow: 0 1px 3px #000; pointer-events: none; }
-  @media (prefers-reduced-motion: reduce) { #hud, #hint { transition: none; } }
+  #row2 { display: flex; gap: 8px; }
+  #row2 button { flex: 1; appearance: none; border: 0; border-radius: 14px; padding: 12px 0; font: 600 1.15rem var(--font); color: var(--ink); background: rgba(255,255,255,.1); cursor: pointer; }
+  #row2 button:active { background: rgba(255,255,255,.25); }
+  #row2 button:focus-visible { outline: 2px solid var(--accent2); }
+  #row2 button.on { background: linear-gradient(90deg, var(--accent), var(--accent2)); color: #000; }
+  #row2 small { display: block; font-size: .62rem; font-weight: 500; opacity: .8; margin-top: 2px; }
+
+  #diag { position: fixed; top: max(10px, env(safe-area-inset-top)); left: 12px; right: 12px; text-align: center; font: 600 .72rem ui-monospace, Menlo, monospace; color: var(--ok); text-shadow: 0 1px 3px #000; pointer-events: none; transition: opacity .5s; }
+  #diag.faded { opacity: 0; }
+  #toast { position: fixed; top: 38%; left: 50%; transform: translate(-50%, -50%); padding: 14px 20px; border-radius: 16px; background: var(--glass); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+    font-size: 1rem; text-align: center; max-width: 80vw; line-height: 1.4; pointer-events: none; transition: opacity .4s; }
+  #toast.faded { opacity: 0; }
+  #muted { position: fixed; top: calc(max(10px, env(safe-area-inset-top)) + 26px); left: 16px; right: 16px; padding: 12px 14px; border-radius: 14px; background: #3a2400; color: var(--warn); font-size: .9rem; line-height: 1.4; text-align: center; }
+  @media (prefers-reduced-motion: reduce) { #bar, #diag, #toast { transition: none; } }
 </style>
 </head>
 <body>
@@ -56,25 +70,49 @@
   <p>Start Spotify playing through the iPhone speaker (not AirPods), then tap Start and allow the microphone.</p>
   <button id="start" type="button">Start</button>
   <div id="err" hidden></div>
+  <div id="ver">Version 3</div>
 </div>
 
 <div id="diag" hidden></div>
-<div id="hint" hidden>Tap: next look &nbsp;·&nbsp; Hold: keep this look</div>
-<div id="hud" hidden>
-  <div id="meter"><div id="meterFill"></div></div>
-  <div id="name">Loading…</div>
+<div id="muted" hidden>Safari has paused the microphone. Tap the crossed-out mic icon in the address bar to turn it back on.</div>
+<div id="toast" class="faded"></div>
+
+<div id="bar" hidden>
+  <div id="row1"><div id="meter"><div id="meterFill"></div></div><div id="name">Loading…</div></div>
+  <div id="row2">
+    <button id="down" type="button" aria-label="Never show this look again">👎<small>Hide</small></button>
+    <button id="next" type="button" aria-label="Next look">⏭<small>Next</small></button>
+    <button id="up" type="button" aria-label="Add this look to favourites">👍<small>Like</small></button>
+    <button id="fav" type="button" aria-label="Show only favourites">★<small>Favourites</small></button>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/butterchurn@2.6.7/lib/butterchurn.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/butterchurn-presets@2.4.7/lib/butterchurnPresets.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/butterchurn-presets@2.4.7/lib/butterchurnPresetsExtra.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/butterchurn-presets@2.4.7/lib/butterchurnPresetsExtra2.min.js"></script>
 <script>
 (() => {
   const $ = id => document.getElementById(id);
   const canvas = $('c');
   const SWITCH_MS = 22000, BLEND_S = 2.7;
-  let ctx, viz, analyser, presets, names = [], current = -1, locked = false, lastSwitch = 0, wakeLock = null, hudTimer, micTrack, lastDiag = 0, peakHold = 0;
+  // A look is "sparse" when most of the screen stays dark; those get skipped automatically.
+  const SPARSE_LIT_SHARE = 0.35, SPARSE_SECONDS = 5;
+  let ctx, viz, analyser, presets = {}, names = [], current = null, lastSwitch = 0, wakeLock = null, uiTimer, toastTimer, micTrack;
+  let lastDiag = 0, peakHold = 0, sparseSince = 0, lastProbe = 0;
+
+  // Likes and hides are remembered on this phone only.
+  const store = {
+    get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (_) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) {} }
+  };
+  const liked = new Set(store.get('mv.liked', []));
+  const hidden = new Set(store.get('mv.hidden', []));
+  const sparse = new Set(store.get('mv.sparse', []));
+  let favOnly = store.get('mv.favOnly', false);
 
   function showError(msg) { const e = $('err'); e.textContent = msg; e.hidden = false; }
+  function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.remove('faded'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.add('faded'), 1800); }
 
   function size() {
     const pr = Math.min(window.devicePixelRatio || 1, 2);
@@ -83,19 +121,38 @@
     if (viz) viz.setRendererSize(w, h);
   }
 
-  function nextPreset(blend = BLEND_S) {
-    let i;
-    do { i = Math.floor(Math.random() * names.length); } while (names.length > 1 && i === current);
-    current = i;
-    viz.loadPreset(presets[names[i]], blend);
-    $('name').textContent = names[i];
-    lastSwitch = performance.now();
+  function pool() {
+    if (favOnly && liked.size) return names.filter(n => liked.has(n));
+    const p = names.filter(n => !hidden.has(n) && !sparse.has(n));
+    return p.length ? p : names.filter(n => !hidden.has(n));
   }
 
-  function pokeHud() {
-    $('hud').classList.remove('faded'); $('hint').classList.remove('faded');
-    clearTimeout(hudTimer);
-    hudTimer = setTimeout(() => { $('hud').classList.add('faded'); $('hint').classList.add('faded'); }, 4000);
+  function play(name, blend = BLEND_S) {
+    current = name;
+    viz.loadPreset(presets[name], blend);
+    lastSwitch = performance.now(); sparseSince = 0;
+    renderBar();
+  }
+
+  function nextPreset(blend) {
+    const p = pool();
+    if (!p.length) return;
+    let n; do { n = p[Math.floor(Math.random() * p.length)]; } while (p.length > 1 && n === current);
+    play(n, blend);
+  }
+
+  function renderBar() {
+    if (favOnly && !liked.size) { favOnly = false; store.set('mv.favOnly', false); }
+    $('name').textContent = (liked.has(current) ? '👍 ' : '') + current;
+    $('up').classList.toggle('on', liked.has(current));
+    $('fav').classList.toggle('on', favOnly);
+    $('fav').querySelector('small').textContent = favOnly ? 'Favs (' + liked.size + ')' : 'Favourites';
+  }
+
+  function showUi() {
+    $('bar').classList.remove('faded'); $('diag').classList.remove('faded');
+    clearTimeout(uiTimer);
+    uiTimer = setTimeout(() => { $('bar').classList.add('faded'); $('diag').classList.add('faded'); }, 5000);
   }
 
   async function keepAwake() {
@@ -106,8 +163,9 @@
     $('start').disabled = true;
     try {
       const bc = window.butterchurn && (window.butterchurn.default || window.butterchurn);
-      const bp = window.butterchurnPresets && (window.butterchurnPresets.default || window.butterchurnPresets);
-      if (!bc || !bp) throw new Error('The visual engine did not load. Check your internet connection and reload.');
+      const packs = [window.butterchurnPresets, window.butterchurnPresetsExtra, window.butterchurnPresetsExtra2]
+        .filter(Boolean).map(p => p.default || p);
+      if (!bc || !packs.length) throw new Error('The visual engine did not load. Check your internet connection and reload.');
 
       // Ask for the mic before creating the audio engine: on iPhone, turning the mic on
       // switches the phone's audio mode, which can leave an earlier audio engine stuck.
@@ -115,9 +173,10 @@
         audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
       });
       micTrack = stream.getAudioTracks()[0];
+      micTrack.onmute = micTrack.onunmute = () => { $('muted').hidden = !micTrack.muted; };
       ctx = new (window.AudioContext || window.webkitAudioContext)();
       const src = ctx.createMediaStreamSource(stream);
-      // Mic sounds quieter than a line signal, so boost it a little before the visuals see it.
+      // Mic sounds quieter than a line signal, so boost it before the visuals see it.
       const gain = ctx.createGain(); gain.gain.value = 3;
       src.connect(gain);
       analyser = ctx.createAnalyser(); analyser.fftSize = 512;
@@ -129,57 +188,89 @@
       viz = bc.createVisualizer(ctx, canvas, { width: canvas.width, height: canvas.height, pixelRatio: 1, textureRatio: 1 });
       viz.connectAudio(gain);
 
-      presets = bp.getPresets();
+      packs.forEach(p => Object.assign(presets, p.getPresets()));
       names = Object.keys(presets);
       nextPreset(0);
 
-      $('intro').hidden = true; $('hud').hidden = false; $('hint').hidden = false; $('diag').hidden = false;
-      pokeHud(); keepAwake();
+      $('intro').hidden = true; $('bar').hidden = false; $('diag').hidden = false;
+      $('muted').hidden = !micTrack.muted;
+      showUi(); keepAwake();
       requestAnimationFrame(loop);
     } catch (e) {
       $('start').disabled = false;
       const name = e && e.name;
-      if (name === 'NotAllowedError') showError('Microphone access was blocked. In Settings > Safari > Microphone, choose Allow or Ask, then reload this page.');
+      if (name === 'NotAllowedError') showError('Microphone access was blocked. In Settings > Apps > Safari > Microphone, choose Allow or Ask, then reload this page.');
       else if (name === 'NotFoundError') showError('No microphone was found.');
       else showError((e && e.message) || 'Something went wrong starting the visualiser.');
     }
   }
 
+  // Shrink the frame to 24x24 and count how much of it is lit.
+  const probe = document.createElement('canvas'); probe.width = probe.height = 24;
+  const pctx = probe.getContext('2d', { willReadFrequently: true });
+  function litShare() {
+    try {
+      pctx.drawImage(canvas, 0, 0, 24, 24);
+      const d = pctx.getImageData(0, 0, 24, 24).data;
+      let lit = 0;
+      for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] > 90) lit++;
+      return lit / 576;
+    } catch (_) { return 1; }
+  }
+
   const buf = new Uint8Array(512);
   function loop(t) {
     viz.render();
+
+    if (t - lastProbe > 500 && t - lastSwitch > 4000) {
+      lastProbe = t;
+      if (litShare() < SPARSE_LIT_SHARE) {
+        if (!sparseSince) sparseSince = t;
+        else if (t - sparseSince > SPARSE_SECONDS * 1000 && !liked.has(current) && !favOnly) {
+          sparse.add(current); store.set('mv.sparse', [...sparse]);
+          nextPreset();
+        }
+      } else sparseSince = 0;
+    }
+
     analyser.getByteTimeDomainData(buf);
     let peak = 0; for (let i = 0; i < buf.length; i++) { const v = Math.abs(buf[i] - 128); if (v > peak) peak = v; }
     $('meterFill').style.width = Math.min(100, peak / 128 * 140) + '%';
     peakHold = Math.max(peakHold, peak);
     if (t - lastDiag > 400) {
-      const st = micTrack && micTrack.getSettings ? micTrack.getSettings() : {};
-      const ec = st.echoCancellation === undefined ? '?' : (st.echoCancellation ? 'on' : 'off');
-      $('diag').textContent = 'Audio: ' + ctx.state + '  ·  Mic: ' + (micTrack ? micTrack.readyState + (micTrack.muted ? ' (muted)' : '') : 'none') +
-        '  ·  Level: ' + Math.round(peakHold / 128 * 100) + '%  ·  Echo cancel: ' + ec;
+      $('diag').textContent = 'Audio: ' + ctx.state + '  ·  Mic: ' + (micTrack ? (micTrack.muted ? 'PAUSED' : micTrack.readyState) : 'none') +
+        '  ·  Level: ' + Math.round(peakHold / 128 * 100) + '%';
       peakHold = 0; lastDiag = t;
     }
-    if (!locked && t - lastSwitch > SWITCH_MS) nextPreset();
+
+    if (t - lastSwitch > SWITCH_MS) nextPreset();
     requestAnimationFrame(loop);
   }
 
-  // Tap for the next look; press and hold to lock the current one.
-  let holdTimer, held = false;
-  canvas.addEventListener('pointerdown', () => {
-    if (!viz) return;
-    held = false;
-    holdTimer = setTimeout(() => { held = true; locked = !locked; $('name').textContent = (locked ? '🔒 ' : '') + names[current]; pokeHud(); }, 600);
+  canvas.addEventListener('click', () => { if (viz) showUi(); });
+  $('next').addEventListener('click', () => { nextPreset(); showUi(); });
+  $('up').addEventListener('click', () => {
+    if (liked.has(current)) { liked.delete(current); toast('Removed from favourites'); }
+    else { liked.add(current); hidden.delete(current); sparse.delete(current); toast('Added to favourites'); }
+    store.set('mv.liked', [...liked]); store.set('mv.hidden', [...hidden]); store.set('mv.sparse', [...sparse]);
+    renderBar(); showUi();
   });
-  canvas.addEventListener('pointerup', () => {
-    if (!viz) return;
-    clearTimeout(holdTimer);
-    if (!held) { nextPreset(); pokeHud(); }
+  $('down').addEventListener('click', () => {
+    hidden.add(current); liked.delete(current);
+    store.set('mv.hidden', [...hidden]); store.set('mv.liked', [...liked]);
+    toast('Hidden. You won’t see this one again'); nextPreset(1); showUi();
+  });
+  $('fav').addEventListener('click', () => {
+    if (!favOnly && !liked.size) { toast('Tap 👍 on looks you love first'); showUi(); return; }
+    favOnly = !favOnly; store.set('mv.favOnly', favOnly);
+    toast(favOnly ? 'Showing favourites only' : 'Showing all looks');
+    nextPreset(); showUi();
   });
 
   $('start').addEventListener('click', start);
   window.addEventListener('resize', size);
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') { keepAwake(); if (ctx && ctx.state !== 'running') ctx.resume(); }
+    if (document.visibilityState === 'visible') { keepAwake(); if (ctx && ctx.state !== 'running') ctx.resume().catch(() => {}); }
   });
 })();
 </script>
