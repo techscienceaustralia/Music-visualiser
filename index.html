@@ -8,87 +8,159 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Visualiser">
 <meta name="theme-color" content="#000000">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Monoton&family=Fredoka:wght@500;600;700&display=swap">
 <title>Music Visualiser</title>
 <style>
+  /* Layout: full-bleed visuals; one floating "mirror-ball" sheet for settings. */
   :root {
     --bg: #000;
-    --ink: #f4eefc;
-    --dim: rgba(244, 238, 252, 0.62);
-    --glass: rgba(18, 10, 30, 0.62);
-    --accent: #ff4fd8;
-    --accent2: #46e6ff;
-    --ok: #6dff9e;
-    --warn: #ffcf5a;
-    --font: -apple-system, BlinkMacSystemFont, "SF Pro Rounded", system-ui, sans-serif;
+    --ink: #fff7ff;
+    --dim: rgba(255, 240, 255, 0.7);
+    --panel: rgba(16, 4, 30, 0.82);
+    --magenta: #ff2bd6;
+    --cyan: #19f0ff;
+    --lime: #b6ff2e;
+    --orange: #ff8a1f;
+    --violet: #8a4dff;
+    --warn: #ffd23f;
+    --acid: conic-gradient(from 0deg, var(--magenta), var(--orange), var(--lime), var(--cyan), var(--violet), var(--magenta));
+    --stripe: linear-gradient(90deg, var(--magenta), var(--orange), var(--lime), var(--cyan), var(--violet));
+    --display: "Monoton", "Fredoka", system-ui, sans-serif;
+    --body: "Fredoka", -apple-system, system-ui, sans-serif;
     color-scheme: dark;
   }
-  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font-family: var(--font); overflow: hidden; -webkit-user-select: none; user-select: none; touch-action: manipulation; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font-family: var(--body); overflow: hidden;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   [hidden] { display: none !important; }
   canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; display: block; }
 
-  #intro { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; text-align: center;
-    padding: max(24px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
-    background: radial-gradient(120% 80% at 50% 30%, #3a0d5c 0%, #12051f 55%, #000 100%); }
-  #intro h1 { margin: 0; font-size: 2rem; line-height: 1.1; text-wrap: balance; background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  @keyframes trip { to { filter: hue-rotate(360deg); } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes breathe { 50% { transform: scale(1.06); } }
+
+  /* Start screen */
+  #intro { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; text-align: center; overflow: hidden;
+    padding: max(24px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left)); }
+  #intro::before { content: ""; position: absolute; left: 50%; top: 50%; width: 180vmax; height: 180vmax; margin: -90vmax 0 0 -90vmax; z-index: -1;
+    background: repeating-conic-gradient(from 0deg, #2a0045 0deg 12deg, #05000c 12deg 24deg), var(--acid); background-blend-mode: screen;
+    animation: spin 40s linear infinite, trip 12s linear infinite; opacity: .55; }
+  #intro::after { content: ""; position: absolute; inset: 0; z-index: -1; background: radial-gradient(60% 45% at 50% 50%, rgba(0,0,0,.2), #000 85%); }
+  #intro h1 { margin: 0; font: 400 clamp(2.4rem, 13vw, 4rem)/1.05 var(--display); background: var(--stripe); -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: trip 6s linear infinite; text-wrap: balance; }
   #intro p { margin: 0; max-width: 32ch; color: var(--dim); font-size: 1rem; line-height: 1.45; }
-  #start { appearance: none; border: 0; border-radius: 999px; padding: 16px 34px; font: 600 1.1rem var(--font); color: #000; background: linear-gradient(90deg, var(--accent), var(--accent2)); cursor: pointer; }
-  #start:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+  #start { position: relative; appearance: none; border: 0; border-radius: 999px; padding: 18px 44px; font: 700 1.25rem var(--body); letter-spacing: .04em; color: #12001f;
+    background: var(--acid); animation: trip 5s linear infinite, breathe 2.4s ease-in-out infinite; box-shadow: 0 0 40px rgba(255, 43, 214, .55); cursor: pointer; }
+  #start:focus-visible { outline: 3px solid var(--ink); outline-offset: 4px; }
   #err { color: var(--warn); max-width: 34ch; font-size: .95rem; line-height: 1.4; }
-
-
+  #tips { font-size: .9rem !important; }
   #ver { position: absolute; bottom: max(16px, env(safe-area-inset-bottom)); left: 0; right: 0; font-size: .75rem; color: var(--dim); }
 
-  #bar { position: fixed; left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); bottom: max(12px, env(safe-area-inset-bottom));
-    display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border-radius: 20px; background: var(--glass); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
-    transition: opacity .5s, transform .5s; }
-  #bar.faded { opacity: 0; transform: translateY(12px); pointer-events: none; }
-  #row1 { display: flex; align-items: center; gap: 10px; font-size: .8rem; color: var(--dim); }
-  #meter { flex: 0 0 60px; height: 8px; border-radius: 4px; background: rgba(255,255,255,.12); overflow: hidden; }
-  #meterFill { height: 100%; width: 0; background: linear-gradient(90deg, var(--ok), var(--accent)); }
-  #name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  #row2 { display: flex; gap: 8px; }
-  #row2 button { flex: 1; appearance: none; border: 0; border-radius: 14px; padding: 12px 0; font: 600 1.15rem var(--font); color: var(--ink); background: rgba(255,255,255,.1); cursor: pointer; }
-  #row2 button:active { background: rgba(255,255,255,.25); }
-  #row2 button:focus-visible { outline: 2px solid var(--accent2); }
-  #row2 button.on { background: linear-gradient(90deg, var(--accent), var(--accent2)); color: #000; }
-  #row2 small { display: block; font-size: .62rem; font-weight: 500; opacity: .8; margin-top: 2px; }
+  /* Mic meter (off unless switched on in settings) */
+  #vol { position: fixed; top: calc(max(10px, env(safe-area-inset-top)) + 6px); right: max(14px, env(safe-area-inset-right)); min-width: 66px; padding: 7px 10px; border-radius: 18px;
+    border: 2px solid transparent; background: linear-gradient(var(--panel), var(--panel)) padding-box, var(--acid) border-box; animation: trip 8s linear infinite;
+    text-align: center; pointer-events: none; }
+  #volNum { font: 700 1.9rem/1 var(--body); font-variant-numeric: tabular-nums; color: var(--lime); }
+  #volLbl { font-size: .6rem; letter-spacing: .14em; color: var(--dim); margin-top: 2px; }
+  #muted { position: fixed; top: calc(max(10px, env(safe-area-inset-top)) + 6px); left: 16px; right: 100px; padding: 12px 14px; border-radius: 16px; background: #3a2400; color: var(--warn); font-size: .9rem; line-height: 1.4; }
 
-  #diag { position: fixed; top: max(10px, env(safe-area-inset-top)); left: 12px; right: 12px; text-align: center; font: 600 .72rem ui-monospace, Menlo, monospace; color: var(--ok); text-shadow: 0 1px 3px #000; pointer-events: none; transition: opacity .5s; }
-  #diag.faded { opacity: 0; }
-  #toast { position: fixed; top: 38%; left: 50%; transform: translate(-50%, -50%); padding: 14px 20px; border-radius: 16px; background: var(--glass); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
-    font-size: 1rem; text-align: center; max-width: 80vw; line-height: 1.4; pointer-events: none; transition: opacity .4s; }
+  #toast { position: fixed; top: 38%; left: 50%; transform: translate(-50%, -50%); padding: 14px 22px; border-radius: 20px; font-size: 1.05rem; font-weight: 600; text-align: center; max-width: 80vw; line-height: 1.4;
+    border: 2px solid transparent; background: linear-gradient(var(--panel), var(--panel)) padding-box, var(--acid) border-box; pointer-events: none; transition: opacity .4s; }
   #toast.faded { opacity: 0; }
-  #vol { position: fixed; top: calc(max(10px, env(safe-area-inset-top)) + 24px); right: max(14px, env(safe-area-inset-right)); min-width: 64px; padding: 6px 10px; border-radius: 14px;
-    background: var(--glass); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); text-align: center; pointer-events: none; }
-  #volNum { font: 700 1.9rem/1 ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; color: var(--ok); }
-  #volLbl { font-size: .6rem; letter-spacing: .08em; color: var(--dim); margin-top: 2px; }
-  #muted { position: fixed; top: calc(max(10px, env(safe-area-inset-top)) + 26px); left: 16px; right: 16px; padding: 12px 14px; border-radius: 14px; background: #3a2400; color: var(--warn); font-size: .9rem; line-height: 1.4; text-align: center; }
-  @media (prefers-reduced-motion: reduce) { #bar, #diag, #toast { transition: none; } }
+
+  /* Settings sheet */
+  #menuWrap { position: fixed; inset: 0; display: flex; align-items: flex-end; justify-content: center; background: rgba(0,0,0,.3);
+    padding: 0 max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); }
+  #menu { position: relative; width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 14px; padding: 20px 18px 18px; border-radius: 30px;
+    border: 3px solid transparent; background: linear-gradient(var(--panel), var(--panel)) padding-box, var(--acid) border-box;
+    -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px); box-shadow: 0 0 60px rgba(138, 77, 255, .45); animation: trip 9s linear infinite; }
+  #menuTitle { margin: 0; font: 400 1.5rem/1 var(--display); background: var(--stripe); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  #menuName { font-size: .8rem; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: -6px; }
+
+  .rate { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .blob { appearance: none; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 0 12px; border-radius: 22px; cursor: pointer;
+    font: 600 .95rem var(--body); color: var(--ink); border: 2px solid transparent; background: linear-gradient(#1a0730, #1a0730) padding-box, var(--acid) border-box; }
+  .blob svg { width: 46px; height: 46px; }
+  .blob.on { background: var(--acid); color: #12001f; box-shadow: 0 0 26px rgba(182, 255, 46, .55); }
+  .blob.on svg path { stroke: #12001f; }
+  .blob:active { transform: scale(.96); }
+
+  .row { display: flex; align-items: center; gap: 12px; font-size: 1rem; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.1); }
+  .row svg { width: 28px; height: 28px; flex: none; }
+  .row label { flex: 1; }
+  .row output { font-weight: 700; font-variant-numeric: tabular-nums; min-width: 3.5ch; text-align: right; color: var(--lime); }
+  .timeRow { flex-wrap: wrap; }
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 10px; border-radius: 5px; background: var(--stripe); margin: 6px 0 2px; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; border-radius: 50%; background: #fff; border: 4px solid var(--magenta); box-shadow: 0 0 14px var(--magenta); }
+  input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 4px solid var(--magenta); }
+  .switch { appearance: none; width: 54px; height: 32px; border-radius: 16px; background: rgba(255,255,255,.16); position: relative; cursor: pointer; flex: none; }
+  .switch::after { content: ""; position: absolute; top: 4px; left: 4px; width: 24px; height: 24px; border-radius: 50%; background: #fff; transition: transform .2s; }
+  .switch:checked { background: var(--stripe); box-shadow: 0 0 16px rgba(25, 240, 255, .5); }
+  .switch:checked::after { transform: translateX(22px); }
+  #close { appearance: none; border: 0; border-radius: 999px; padding: 14px 0; font: 700 1.05rem var(--body); letter-spacing: .04em; color: #12001f; background: var(--stripe); cursor: pointer; }
+  button:focus-visible, .switch:focus-visible, input[type=range]:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before { animation: none !important; }
+    #toast, .switch::after { transition: none; }
+  }
 </style>
 </head>
 <body>
+<!-- Shared rainbow gradient for the menu icons -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="acid" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff2bd6"/><stop offset=".35" stop-color="#ff8a1f"/><stop offset=".6" stop-color="#b6ff2e"/><stop offset="1" stop-color="#19f0ff"/>
+    </linearGradient>
+  </defs>
+</svg>
+
 <canvas id="c"></canvas>
 
 <div id="intro">
   <h1>Music Visualiser</h1>
   <p>Play music from another device nearby, such as a computer, TV or speaker, then tap Start and allow the microphone. Safari pauses music playing on this phone while the mic is on.</p>
-  <button id="start" type="button">Start</button>
+  <button id="start" type="button">START</button>
+  <p id="tips">Tap right for the next look, left for the previous one.<br>Press and hold for settings.</p>
   <div id="err" hidden></div>
-  <div id="ver">Version 6</div>
+  <div id="ver">Version 7</div>
 </div>
 
-<div id="diag" hidden></div>
 <div id="vol" hidden><div id="volNum">0</div><div id="volLbl">MIC IN</div></div>
 <div id="muted" hidden>Safari has paused the microphone. Tap the crossed-out mic icon in the address bar to turn it back on.</div>
 <div id="toast" class="faded"></div>
 
-<div id="bar" hidden>
-  <div id="row1"><div id="meter"><div id="meterFill"></div></div><div id="name">Loading…</div></div>
-  <div id="row2">
-    <button id="down" type="button" aria-label="Never show this look again">👎<small>Hide</small></button>
-    <button id="next" type="button" aria-label="Next look">⏭<small>Next</small></button>
-    <button id="up" type="button" aria-label="Add this look to favourites">👍<small>Like</small></button>
-    <button id="fav" type="button" aria-label="Show only favourites">★<small>Favourites</small></button>
+<div id="menuWrap" hidden>
+  <div id="menu" role="dialog" aria-labelledby="menuTitle">
+    <h2 id="menuTitle">Settings</h2>
+    <div id="menuName"></div>
+    <div class="rate">
+      <button id="down" class="blob" type="button">
+        <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M17 8h17a4 4 0 0 1 4 3.4l2.4 14A4 4 0 0 1 36.5 30H28l1.6 6.6c.6 2.6-1.4 5.1-4 5.1L17 28V8Zm-9 0h5v20H8z" fill="none" stroke="url(#acid)" stroke-width="3.2" stroke-linejoin="round"/></svg>
+        Hide this one
+      </button>
+      <button id="up" class="blob" type="button">
+        <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M17 40h17a4 4 0 0 0 4-3.4l2.4-14A4 4 0 0 0 36.5 18H28l1.6-6.6c.6-2.6-1.4-5.1-4-5.1L17 20v20Zm-9 0h5V20H8z" fill="none" stroke="url(#acid)" stroke-width="3.2" stroke-linejoin="round"/></svg>
+        <span id="upLbl">Love it</span>
+      </button>
+    </div>
+    <div class="row">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 27s-11-6.6-11-14a6 6 0 0 1 11-3.3A6 6 0 0 1 27 13c0 7.4-11 14-11 14Z" fill="none" stroke="url(#acid)" stroke-width="2.6" stroke-linejoin="round"/></svg>
+      <label for="favOnly">Only looks I love</label><input id="favOnly" class="switch" type="checkbox">
+    </div>
+    <div class="row">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M3 16h4l3-8 4 16 4-12 3 8 2-4h6" fill="none" stroke="url(#acid)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <label for="showMeter">Show mic level</label><input id="showMeter" class="switch" type="checkbox">
+    </div>
+    <div class="row timeRow">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4a12 12 0 1 0 12 12M16 4a12 12 0 0 1 12 12M16 9v7l5 3" fill="none" stroke="url(#acid)" stroke-width="2.6" stroke-linecap="round"/></svg>
+      <label for="secs">Time per look</label><output id="secsOut" for="secs"></output>
+      <input id="secs" type="range" min="2" max="60" step="1">
+    </div>
+    <button id="close" type="button">BACK TO THE TRIP</button>
   </div>
 </div>
 
@@ -100,24 +172,28 @@
 (() => {
   const $ = id => document.getElementById(id);
   const canvas = $('c');
-  const SWITCH_MS = 22000, BLEND_S = 2.7;
   // A look is "sparse" when most of the screen stays dark; those get skipped automatically.
-  const SPARSE_LIT_SHARE = 0.35, SPARSE_SECONDS = 5;
-  let ctx, viz, analyser, presets = {}, names = [], current = null, lastSwitch = 0, wakeLock = null, rawAnalyser, volSmooth = 0, lastVol = 0, uiTimer, toastTimer, micTrack;
-  let lastDiag = 0, peakHold = 0, sparseSince = 0, lastProbe = 0;
+  const SPARSE_LIT_SHARE = 0.35, SPARSE_SECONDS = 5, LONG_PRESS_MS = 550;
+  let ctx, viz, rawAnalyser, presets = {}, names = [], current = null, lastSwitch = 0, wakeLock = null, toastTimer, micTrack;
+  let sparseSince = 0, lastProbe = 0, volSmooth = 0, lastVol = 0, history = [], histPos = -1;
 
-  // Likes and hides are remembered on this phone only.
+  // Settings, likes and hides are saved in this browser on this phone, so they survive closing the page.
   const store = {
-    get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (_) { return d; } },
+    get(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? d; } catch (_) { return d; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) {} }
   };
   const liked = new Set(store.get('mv.liked', []));
   const hidden = new Set(store.get('mv.hidden', []));
   const sparse = new Set(store.get('mv.sparse', []));
   let favOnly = store.get('mv.favOnly', false);
+  let showMeter = store.get('mv.showMeter', false);
+  let secs = store.get('mv.secs', 20);
+
+  const saveSets = () => { store.set('mv.liked', [...liked]); store.set('mv.hidden', [...hidden]); store.set('mv.sparse', [...sparse]); };
+  const blendFor = () => Math.min(2.7, secs * 0.4);
 
   function showError(msg) { const e = $('err'); e.textContent = msg; e.hidden = false; }
-  function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.remove('faded'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.add('faded'), 1800); }
+  function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.remove('faded'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.add('faded'), 1500); }
 
   function size() {
     const pr = Math.min(window.devicePixelRatio || 1, 2);
@@ -132,32 +208,28 @@
     return p.length ? p : names.filter(n => !hidden.has(n));
   }
 
-  function play(name, blend = BLEND_S) {
+  function play(name, blend) {
     current = name;
     viz.loadPreset(presets[name], blend);
     lastSwitch = performance.now(); sparseSince = 0;
-    renderBar();
   }
 
-  function nextPreset(blend) {
+  function next(blend = blendFor()) {
+    if (histPos < history.length - 1) {
+      // Stepping forward again after going back replays the same looks.
+      histPos++; play(history[histPos], blend); return;
+    }
     const p = pool();
     if (!p.length) return;
     let n; do { n = p[Math.floor(Math.random() * p.length)]; } while (p.length > 1 && n === current);
+    history.push(n); if (history.length > 100) history.shift();
+    histPos = history.length - 1;
     play(n, blend);
   }
 
-  function renderBar() {
-    if (favOnly && !liked.size) { favOnly = false; store.set('mv.favOnly', false); }
-    $('name').textContent = (liked.has(current) ? '👍 ' : '') + current;
-    $('up').classList.toggle('on', liked.has(current));
-    $('fav').classList.toggle('on', favOnly);
-    $('fav').querySelector('small').textContent = favOnly ? 'Favs (' + liked.size + ')' : 'Favourites';
-  }
-
-  function showUi() {
-    $('bar').classList.remove('faded'); $('diag').classList.remove('faded');
-    clearTimeout(uiTimer);
-    uiTimer = setTimeout(() => { $('bar').classList.add('faded'); $('diag').classList.add('faded'); }, 5000);
+  function prev() {
+    if (histPos <= 0) { toast('This is the first look'); return; }
+    histPos--; play(history[histPos], blendFor());
   }
 
   async function keepAwake() {
@@ -186,8 +258,6 @@
       src.connect(gain);
       rawAnalyser = ctx.createAnalyser(); rawAnalyser.fftSize = 1024;
       src.connect(rawAnalyser);
-      analyser = ctx.createAnalyser(); analyser.fftSize = 512;
-      gain.connect(analyser);
       if (ctx.state !== 'running') await ctx.resume();
       ctx.onstatechange = () => { if (ctx.state !== 'running' && document.visibilityState === 'visible') ctx.resume().catch(() => {}); };
 
@@ -197,11 +267,12 @@
 
       packs.forEach(p => Object.assign(presets, p.getPresets()));
       names = Object.keys(presets);
-      nextPreset(0);
+      next(0);
 
-      $('intro').hidden = true; $('bar').hidden = false; $('diag').hidden = false; $('vol').hidden = false;
+      $('intro').hidden = true;
+      $('vol').hidden = !showMeter;
       $('muted').hidden = !micTrack.muted;
-      showUi(); keepAwake();
+      keepAwake();
       requestAnimationFrame(loop);
     } catch (e) {
       $('start').disabled = false;
@@ -225,7 +296,7 @@
     } catch (_) { return 1; }
   }
 
-  const buf = new Uint8Array(512), fbuf = new Float32Array(1024);
+  const fbuf = new Float32Array(1024);
   function loop(t) {
     viz.render();
 
@@ -234,57 +305,92 @@
       if (litShare() < SPARSE_LIT_SHARE) {
         if (!sparseSince) sparseSince = t;
         else if (t - sparseSince > SPARSE_SECONDS * 1000 && !liked.has(current) && !favOnly) {
-          sparse.add(current); store.set('mv.sparse', [...sparse]);
-          nextPreset();
+          sparse.add(current); saveSets(); next();
         }
       } else sparseSince = 0;
     }
 
-    analyser.getByteTimeDomainData(buf);
-    let peak = 0; for (let i = 0; i < buf.length; i++) { const v = Math.abs(buf[i] - 128); if (v > peak) peak = v; }
-    $('meterFill').style.width = Math.min(100, peak / 128 * 140) + '%';
-    peakHold = Math.max(peakHold, peak);
-    if (t - lastDiag > 400) {
-      $('diag').textContent = 'Audio: ' + ctx.state + '  ·  Mic: ' + (micTrack ? (micTrack.muted ? 'PAUSED' : micTrack.readyState) : 'none') +
-        '  ·  Level: ' + Math.round(peakHold / 128 * 100) + '%';
-      peakHold = 0; lastDiag = t;
+    if (showMeter) {
+      // Mic input 0-100: loudness of the raw mic signal on a decibel scale (-60 dB = 0, 0 dB = 100).
+      rawAnalyser.getFloatTimeDomainData(fbuf);
+      let sum = 0; for (let i = 0; i < fbuf.length; i++) sum += fbuf[i] * fbuf[i];
+      const db = 20 * Math.log10(Math.sqrt(sum / fbuf.length) + 1e-9);
+      const vol = Math.max(0, Math.min(100, (db + 60) / 60 * 100));
+      volSmooth = vol > volSmooth ? vol : volSmooth * 0.9 + vol * 0.1;
+      if (t - lastVol > 100) {
+        lastVol = t;
+        const v = Math.round(volSmooth);
+        $('volNum').textContent = v;
+        $('volNum').style.color = micTrack && micTrack.muted ? 'var(--warn)' : v < 5 ? 'var(--dim)' : 'var(--lime)';
+      }
     }
 
-    // Mic input 0-100: loudness of the raw mic signal on a decibel scale (-60 dB = 0, 0 dB = 100).
-    rawAnalyser.getFloatTimeDomainData(fbuf);
-    let sum = 0; for (let i = 0; i < fbuf.length; i++) sum += fbuf[i] * fbuf[i];
-    const db = 20 * Math.log10(Math.sqrt(sum / fbuf.length) + 1e-9);
-    const vol = Math.max(0, Math.min(100, (db + 60) / 60 * 100));
-    volSmooth = vol > volSmooth ? vol : volSmooth * 0.9 + vol * 0.1;
-    if (t - lastVol > 100) {
-      lastVol = t;
-      const v = Math.round(volSmooth);
-      $('volNum').textContent = v;
-      $('volNum').style.color = micTrack && micTrack.muted ? 'var(--warn)' : v < 5 ? 'var(--dim)' : 'var(--ok)';
-    }
-
-    if (t - lastSwitch > SWITCH_MS) nextPreset();
+    // While settings are open, hold the current look so you can rate it.
+    if (menuOpen()) lastSwitch = Math.max(lastSwitch, t - secs * 1000 + 1000);
+    else if (t - lastSwitch > secs * 1000) next();
     requestAnimationFrame(loop);
   }
 
-  canvas.addEventListener('click', () => { if (viz) showUi(); });
-  $('next').addEventListener('click', () => { nextPreset(); showUi(); });
+  // Touch: tap right half = next, left half = previous, press and hold = settings.
+  let pressTimer, pressed = false, downX = 0, downY = 0;
+  canvas.addEventListener('pointerdown', e => {
+    if (!viz) return;
+    pressed = false; downX = e.clientX; downY = e.clientY;
+    clearTimeout(pressTimer);
+    pressTimer = setTimeout(() => { pressed = true; openMenu(); }, LONG_PRESS_MS);
+  });
+  canvas.addEventListener('pointermove', e => {
+    if (Math.hypot(e.clientX - downX, e.clientY - downY) > 20) clearTimeout(pressTimer);
+  });
+  canvas.addEventListener('pointerup', e => {
+    if (!viz) return;
+    clearTimeout(pressTimer);
+    if (pressed) return;
+    if (e.clientX >= window.innerWidth / 2) next(); else prev();
+  });
+  canvas.addEventListener('pointercancel', () => clearTimeout(pressTimer));
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+  const menuOpen = () => !$('menuWrap').hidden;
+  function renderMenu() {
+    $('menuName').textContent = current || '';
+    $('up').classList.toggle('on', liked.has(current));
+    $('upLbl').textContent = liked.has(current) ? 'Loved' : 'Love it';
+    $('favOnly').checked = favOnly;
+    $('showMeter').checked = showMeter;
+    $('secs').value = secs;
+    $('secsOut').textContent = secs + ' s';
+  }
+  function openMenu() { renderMenu(); $('menuWrap').hidden = false; }
+  function closeMenu() { $('menuWrap').hidden = true; }
+
+  $('close').addEventListener('click', closeMenu);
+  $('menuWrap').addEventListener('click', e => { if (e.target === $('menuWrap')) closeMenu(); });
   $('up').addEventListener('click', () => {
-    if (liked.has(current)) { liked.delete(current); toast('Removed from favourites'); }
-    else { liked.add(current); hidden.delete(current); sparse.delete(current); toast('Added to favourites'); }
-    store.set('mv.liked', [...liked]); store.set('mv.hidden', [...hidden]); store.set('mv.sparse', [...sparse]);
-    renderBar(); showUi();
+    if (liked.has(current)) { liked.delete(current); toast('Removed from your loved looks'); if (!liked.size && favOnly) { favOnly = false; store.set('mv.favOnly', false); } }
+    else { liked.add(current); hidden.delete(current); sparse.delete(current); toast('Added to your loved looks'); }
+    saveSets(); renderMenu();
   });
   $('down').addEventListener('click', () => {
     hidden.add(current); liked.delete(current);
-    store.set('mv.hidden', [...hidden]); store.set('mv.liked', [...liked]);
-    toast('Hidden. You won’t see this one again'); nextPreset(1); showUi();
+    if (!liked.size && favOnly) { favOnly = false; store.set('mv.favOnly', false); }
+    saveSets(); toast('Gone. You won’t see this one again');
+    // Drop it from history too, so going back doesn't land on it.
+    history = history.filter(n => n !== current); histPos = history.length - 1;
+    closeMenu(); next(1);
   });
-  $('fav').addEventListener('click', () => {
-    if (!favOnly && !liked.size) { toast('Tap 👍 on looks you love first'); showUi(); return; }
-    favOnly = !favOnly; store.set('mv.favOnly', favOnly);
-    toast(favOnly ? 'Showing favourites only' : 'Showing all looks');
-    nextPreset(); showUi();
+  $('favOnly').addEventListener('change', e => {
+    if (e.target.checked && !liked.size) { e.target.checked = false; toast('Tap Love it on looks you like first'); return; }
+    favOnly = e.target.checked; store.set('mv.favOnly', favOnly);
+    history = history.slice(0, histPos + 1);
+  });
+  $('showMeter').addEventListener('change', e => {
+    showMeter = e.target.checked; store.set('mv.showMeter', showMeter);
+    if (viz) $('vol').hidden = !showMeter;
+  });
+  $('secs').addEventListener('input', e => {
+    secs = Number(e.target.value); store.set('mv.secs', secs);
+    $('secsOut').textContent = secs + ' s';
   });
 
   $('start').addEventListener('click', start);
