@@ -7,129 +7,156 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Visualiser">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#05030f">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" href="icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Monoton&family=Fredoka:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cormorant+Garamond:wght@500;600;700&display=swap">
 <title>Music Visualiser</title>
 <style>
-  /* Layout: full-bleed visuals; one floating "mirror-ball" sheet for settings. */
+  /* Visionary-art direction: cosmic indigo void, luminous gold line-work, electric-blue energy,
+     sacred geometry and the all-seeing eye. Layout: full-bleed visuals; one framed "altar" panel for settings. */
   :root {
-    --bg: #000;
-    --ink: #fff7ff;
-    --dim: rgba(255, 240, 255, 0.7);
-    --panel: rgba(16, 4, 30, 0.82);
-    --magenta: #ff2bd6;
-    --cyan: #19f0ff;
-    --lime: #b6ff2e;
-    --orange: #ff8a1f;
-    --violet: #8a4dff;
-    --warn: #ffd23f;
-    --acid: conic-gradient(from 0deg, var(--magenta), var(--orange), var(--lime), var(--cyan), var(--violet), var(--magenta));
-    --stripe: linear-gradient(90deg, var(--magenta), var(--orange), var(--lime), var(--cyan), var(--violet));
-    --display: "Monoton", "Fredoka", system-ui, sans-serif;
-    --body: "Fredoka", -apple-system, system-ui, sans-serif;
+    --void: #05030f;
+    --indigo: #120a2e;
+    --panel: rgba(10, 6, 30, 0.86);
+    --gold: #f0c76e;
+    --amber: #ff9d3f;
+    --pearl: #f3ead8;
+    --aura: #6fe6ff;
+    --violet: #a98bff;
+    --dim: rgba(243, 234, 216, 0.66);
+    --warn: #ffcf6a;
+    --glow-gold: 0 0 6px rgba(240, 199, 110, .75), 0 0 18px rgba(255, 157, 63, .35);
+    --glow-aura: 0 0 8px rgba(111, 230, 255, .7), 0 0 22px rgba(169, 139, 255, .35);
+    --display: "Cinzel Decorative", "Cinzel", Georgia, serif;
+    --body: "Cormorant Garamond", Georgia, "Times New Roman", serif;
     color-scheme: dark;
   }
-  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font-family: var(--body); overflow: hidden;
+  html, body { margin: 0; height: 100%; background: var(--void); color: var(--pearl); font-family: var(--body); font-weight: 600; overflow: hidden;
     -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   [hidden] { display: none !important; }
-  canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; display: block; }
+  #c { position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; display: block; }
 
-  @keyframes trip { to { filter: hue-rotate(360deg); } }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  @keyframes breathe { 50% { transform: scale(1.06); } }
+  @keyframes pulse { 50% { filter: drop-shadow(0 0 14px rgba(111, 230, 255, .8)) drop-shadow(0 0 30px rgba(240, 199, 110, .5)); } }
+  @keyframes shimmer { to { background-position: 200% 0; } }
 
-  /* Start screen */
-  #intro { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; text-align: center; overflow: hidden;
+  /* Start screen: a living mandala drawn on its own canvas */
+  #intro { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; text-align: center; overflow: hidden;
+    background: radial-gradient(70% 55% at 50% 42%, #1b0f45 0%, #0b0622 55%, var(--void) 100%);
     padding: max(24px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left)); }
-  #intro::before { content: ""; position: absolute; left: 50%; top: 50%; width: 180vmax; height: 180vmax; margin: -90vmax 0 0 -90vmax; z-index: -1;
-    background: repeating-conic-gradient(from 0deg, #2a0045 0deg 12deg, #05000c 12deg 24deg), var(--acid); background-blend-mode: screen;
-    animation: spin 40s linear infinite, trip 12s linear infinite; opacity: .55; }
-  #intro::after { content: ""; position: absolute; inset: 0; z-index: -1; background: radial-gradient(60% 45% at 50% 50%, rgba(0,0,0,.2), #000 85%); }
-  #intro h1 { margin: 0; font: 400 clamp(2.4rem, 13vw, 4rem)/1.05 var(--display); background: var(--stripe); -webkit-background-clip: text; background-clip: text; color: transparent;
-    animation: trip 6s linear infinite; text-wrap: balance; }
-  #intro p { margin: 0; max-width: 32ch; color: var(--dim); font-size: 1rem; line-height: 1.45; }
-  #start { position: relative; appearance: none; border: 0; border-radius: 999px; padding: 18px 44px; font: 700 1.25rem var(--body); letter-spacing: .04em; color: #12001f;
-    background: var(--acid); animation: trip 5s linear infinite, breathe 2.4s ease-in-out infinite; box-shadow: 0 0 40px rgba(255, 43, 214, .55); cursor: pointer; }
-  #start:focus-visible { outline: 3px solid var(--ink); outline-offset: 4px; }
-  #err { color: var(--warn); max-width: 34ch; font-size: .95rem; line-height: 1.4; }
-  #tips { font-size: .9rem !important; }
-  #ver { position: absolute; bottom: max(16px, env(safe-area-inset-bottom)); left: 0; right: 0; font-size: .75rem; color: var(--dim); }
+  #halo { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
+  #intro > :not(#halo) { position: relative; z-index: 1; }
+  #intro h1 { margin: 0; font: 700 clamp(2rem, 10.5vw, 3.4rem)/1.08 var(--display); letter-spacing: .02em; text-wrap: balance;
+    background: linear-gradient(100deg, #b98a3e 0%, var(--gold) 30%, #fff4cf 45%, var(--gold) 60%, #b98a3e 100%); background-size: 200% 100%;
+    -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 12px rgba(240,199,110,.35)); animation: shimmer 7s linear infinite; }
+  #intro p { margin: 0; max-width: 31ch; color: var(--dim); font-size: 1.12rem; line-height: 1.4; text-shadow: 0 1px 8px #000; }
+  #start { appearance: none; position: relative; width: 190px; height: 92px; border: 0; padding: 0; background: none; cursor: pointer; color: var(--pearl);
+    font: 700 1rem var(--display); letter-spacing: .18em; animation: pulse 3.2s ease-in-out infinite; }
+  #start svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  #start span { position: relative; text-shadow: 0 0 10px #000, 0 0 3px #000; }
+  #start:focus-visible { outline: 2px solid var(--aura); outline-offset: 6px; border-radius: 50%; }
+  #err { color: var(--warn); max-width: 34ch; font-size: 1.05rem; line-height: 1.4; }
+  #tips { font-size: 1rem !important; }
+  #ver { position: absolute !important; bottom: max(16px, env(safe-area-inset-bottom)); left: 0; right: 0; font-size: .85rem; color: var(--dim); letter-spacing: .1em; }
 
   /* Mic meter (off unless switched on in settings) */
-  #vol { position: fixed; top: calc(max(10px, env(safe-area-inset-top)) + 6px); right: max(14px, env(safe-area-inset-right)); min-width: 66px; padding: 7px 10px; border-radius: 18px;
-    border: 2px solid transparent; background: linear-gradient(var(--panel), var(--panel)) padding-box, var(--acid) border-box; animation: trip 8s linear infinite;
-    text-align: center; pointer-events: none; }
-  #volNum { font: 700 1.9rem/1 var(--body); font-variant-numeric: tabular-nums; color: var(--lime); }
-  #volLbl { font-size: .6rem; letter-spacing: .14em; color: var(--dim); margin-top: 2px; }
-  #muted { position: fixed; top: calc(max(10px, env(safe-area-inset-top)) + 6px); left: 16px; right: 100px; padding: 12px 14px; border-radius: 16px; background: #3a2400; color: var(--warn); font-size: .9rem; line-height: 1.4; }
+  #vol { position: fixed; top: calc(max(10px, env(safe-area-inset-top)) + 6px); right: max(14px, env(safe-area-inset-right)); min-width: 66px; padding: 7px 10px; border-radius: 14px;
+    background: var(--panel); border: 1px solid rgba(240,199,110,.6); box-shadow: var(--glow-gold); text-align: center; pointer-events: none; }
+  #volNum { font: 700 2rem/1 var(--body); font-variant-numeric: tabular-nums; color: var(--aura); text-shadow: var(--glow-aura); }
+  #volLbl { font-size: .7rem; letter-spacing: .2em; color: var(--gold); margin-top: 2px; }
+  #muted { position: fixed; top: calc(max(10px, env(safe-area-inset-top)) + 6px); left: 16px; right: 100px; padding: 12px 14px; border-radius: 14px; background: #2a1a05; border: 1px solid var(--amber); color: var(--warn); font-size: 1.05rem; line-height: 1.35; }
 
-  #toast { position: fixed; top: 38%; left: 50%; transform: translate(-50%, -50%); padding: 14px 22px; border-radius: 20px; font-size: 1.05rem; font-weight: 600; text-align: center; max-width: 80vw; line-height: 1.4;
-    border: 2px solid transparent; background: linear-gradient(var(--panel), var(--panel)) padding-box, var(--acid) border-box; pointer-events: none; transition: opacity .4s; }
+  #toast { position: fixed; top: 38%; left: 50%; transform: translate(-50%, -50%); padding: 14px 22px; border-radius: 14px; font-size: 1.2rem; text-align: center; max-width: 80vw; line-height: 1.35;
+    background: var(--panel); border: 1px solid rgba(240,199,110,.7); box-shadow: var(--glow-gold); pointer-events: none; transition: opacity .4s; }
   #toast.faded { opacity: 0; }
 
-  /* Settings sheet */
-  #menuWrap { position: fixed; inset: 0; display: flex; align-items: flex-end; justify-content: center; background: rgba(0,0,0,.3);
+  /* Settings: a framed panel with gold filigree corners */
+  #menuWrap { position: fixed; inset: 0; display: flex; align-items: flex-end; justify-content: center; background: rgba(2, 1, 8, .38);
     padding: 0 max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); }
-  #menu { position: relative; width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 14px; padding: 20px 18px 18px; border-radius: 30px;
-    border: 3px solid transparent; background: linear-gradient(var(--panel), var(--panel)) padding-box, var(--acid) border-box;
-    -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px); box-shadow: 0 0 60px rgba(138, 77, 255, .45); animation: trip 9s linear infinite; }
-  #menuTitle { margin: 0; font: 400 1.5rem/1 var(--display); background: var(--stripe); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  #menuName { font-size: .8rem; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: -6px; }
+  #menu { position: relative; width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 12px; padding: 24px 20px 20px; border-radius: 6px;
+    background: radial-gradient(120% 70% at 50% 0%, rgba(42, 24, 96, .55), transparent 70%), var(--panel);
+    -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px);
+    border: 1px solid rgba(240,199,110,.75); outline: 1px solid rgba(240,199,110,.25); outline-offset: -7px;
+    box-shadow: 0 0 0 1px rgba(111,230,255,.15), 0 0 40px rgba(111,230,255,.18), 0 0 80px rgba(169,139,255,.18); }
+  .corner { position: absolute; width: 44px; height: 44px; pointer-events: none; filter: drop-shadow(0 0 4px rgba(240,199,110,.6)); }
+  .corner.tl { top: -6px; left: -6px; } .corner.tr { top: -6px; right: -6px; transform: scaleX(-1); }
+  .corner.bl { bottom: -6px; left: -6px; transform: scaleY(-1); } .corner.br { bottom: -6px; right: -6px; transform: scale(-1); }
+  #menuHead { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+  #menuHead svg { width: 64px; height: 26px; }
+  #menuTitle { margin: 0; font: 700 1.35rem/1 var(--display); letter-spacing: .08em; color: var(--gold); text-shadow: var(--glow-gold); }
+  #menuName { font-size: .95rem; font-style: italic; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 
-  .rate { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .blob { appearance: none; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 0 12px; border-radius: 22px; cursor: pointer;
-    font: 600 .95rem var(--body); color: var(--ink); border: 2px solid transparent; background: linear-gradient(#1a0730, #1a0730) padding-box, var(--acid) border-box; }
-  .blob svg { width: 46px; height: 46px; }
-  .blob.on { background: var(--acid); color: #12001f; box-shadow: 0 0 26px rgba(182, 255, 46, .55); }
-  .blob.on svg path { stroke: #12001f; }
-  .blob:active { transform: scale(.96); }
+  .rate { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 4px; }
+  .seal { appearance: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 0 10px; border-radius: 50%; cursor: pointer;
+    font: 700 1.1rem var(--body); letter-spacing: .03em; color: var(--pearl); background: radial-gradient(80% 90% at 50% 40%, rgba(60, 36, 140, .55), rgba(10, 6, 30, .9));
+    border: 1px solid rgba(240,199,110,.65); box-shadow: inset 0 0 18px rgba(111,230,255,.12); }
+  .seal svg { width: 64px; height: 40px; overflow: visible; }
+  .seal.on { border-color: var(--aura); box-shadow: inset 0 0 24px rgba(111,230,255,.35), var(--glow-aura); color: #fff; }
+  .seal:active { transform: scale(.97); }
 
-  .row { display: flex; align-items: center; gap: 12px; font-size: 1rem; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.1); }
-  .row svg { width: 28px; height: 28px; flex: none; }
+  .row { display: flex; align-items: center; gap: 12px; font-size: 1.18rem; padding-top: 11px; border-top: 1px solid transparent;
+    border-image: linear-gradient(90deg, transparent, rgba(240,199,110,.5), transparent) 1; }
+  .row svg { width: 30px; height: 30px; flex: none; overflow: visible; filter: drop-shadow(0 0 3px rgba(111,230,255,.55)); }
   .row label { flex: 1; }
-  .row output { font-weight: 700; font-variant-numeric: tabular-nums; min-width: 3.5ch; text-align: right; color: var(--lime); }
+  .row small { font-size: .85rem; color: var(--dim); font-style: italic; }
+  .row output { font: 700 1.15rem var(--body); font-variant-numeric: tabular-nums; min-width: 3.5ch; text-align: right; color: var(--aura); text-shadow: var(--glow-aura); }
   .timeRow { flex-wrap: wrap; }
-  .ends { width: 100%; display: flex; justify-content: space-between; font-size: .75rem; color: var(--dim); margin-top: -2px; }
-  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 10px; border-radius: 5px; background: var(--stripe); margin: 6px 0 2px; }
-  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; border-radius: 50%; background: #fff; border: 4px solid var(--magenta); box-shadow: 0 0 14px var(--magenta); }
-  input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 4px solid var(--magenta); }
-  .switch { appearance: none; width: 54px; height: 32px; border-radius: 16px; background: rgba(255,255,255,.16); position: relative; cursor: pointer; flex: none; }
-  .switch::after { content: ""; position: absolute; top: 4px; left: 4px; width: 24px; height: 24px; border-radius: 50%; background: #fff; transition: transform .2s; }
-  .switch:checked { background: var(--stripe); box-shadow: 0 0 16px rgba(25, 240, 255, .5); }
-  .switch:checked::after { transform: translateX(22px); }
-  #close { appearance: none; border: 0; border-radius: 999px; padding: 14px 0; font: 700 1.05rem var(--body); letter-spacing: .04em; color: #12001f; background: var(--stripe); cursor: pointer; }
-  button:focus-visible, .switch:focus-visible, input[type=range]:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+  .ends { width: 100%; display: flex; justify-content: space-between; font-size: .85rem; font-style: italic; color: var(--dim); margin-top: -4px; }
+
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 2px; margin: 12px 0 8px; border-radius: 1px;
+    background: linear-gradient(90deg, rgba(240,199,110,.15), var(--gold) 50%, rgba(240,199,110,.15)); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 26px; height: 26px; border-radius: 50%;
+    background: radial-gradient(circle at 50% 50%, #fff 0 18%, var(--aura) 34%, #2a1a6e 70%); border: 1px solid var(--gold); box-shadow: var(--glow-aura); }
+  input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: radial-gradient(circle, #fff 0 18%, var(--aura) 34%, #2a1a6e 70%); border: 1px solid var(--gold); }
+
+  .switch { appearance: none; width: 56px; height: 30px; border-radius: 15px; position: relative; cursor: pointer; flex: none;
+    background: rgba(10,6,30,.9); border: 1px solid rgba(240,199,110,.55); }
+  .switch::after { content: ""; position: absolute; top: 4px; left: 4px; width: 20px; height: 20px; border-radius: 50%; transition: transform .25s, box-shadow .25s;
+    background: radial-gradient(circle, #6b5a3a 0 30%, #2a2140 70%); }
+  .switch:checked { border-color: var(--aura); box-shadow: inset 0 0 12px rgba(111,230,255,.3); }
+  .switch:checked::after { transform: translateX(26px); background: radial-gradient(circle, #fff 0 18%, var(--aura) 36%, #3a24a0 75%); box-shadow: var(--glow-aura); }
+
+  #close { appearance: none; margin-top: 6px; padding: 14px 0; border-radius: 4px; cursor: pointer; font: 700 .95rem var(--display); letter-spacing: .16em; color: var(--void);
+    background: linear-gradient(100deg, #b98a3e, var(--gold) 35%, #fff4cf 50%, var(--gold) 65%, #b98a3e); background-size: 200% 100%; animation: shimmer 6s linear infinite;
+    border: 0; box-shadow: var(--glow-gold); }
+  button:focus-visible, .switch:focus-visible, input[type=range]:focus-visible { outline: 2px solid var(--aura); outline-offset: 3px; }
 
   @media (prefers-reduced-motion: reduce) {
-    *, *::before { animation: none !important; }
-    #toast, .switch::after { transition: none; }
+    *, *::before, *::after { animation: none !important; transition: none !important; }
   }
 </style>
 </head>
 <body>
-<!-- Shared rainbow gradient for the menu icons -->
+<!-- Shared line-art paints for the icons: gold leaf and electric aura -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
-    <linearGradient id="acid" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#ff2bd6"/><stop offset=".35" stop-color="#ff8a1f"/><stop offset=".6" stop-color="#b6ff2e"/><stop offset="1" stop-color="#19f0ff"/>
-    </linearGradient>
+    <linearGradient id="leaf" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff1c4"/><stop offset=".5" stop-color="#f0c76e"/><stop offset="1" stop-color="#c8862f"/></linearGradient>
+    <radialGradient id="iris" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffffff"/><stop offset=".35" stop-color="#6fe6ff"/><stop offset=".8" stop-color="#5a3bd6"/><stop offset="1" stop-color="#1a0f4a"/></radialGradient>
+    <symbol id="filigree" viewBox="0 0 44 44"><path d="M2 42V14C2 7 7 2 14 2h28M8 42V18c0-6 4-10 10-10h24M2 2l10 10M14 14a4 4 0 1 0 0.01 0" fill="none" stroke="url(#leaf)" stroke-width="1.6"/><circle cx="14" cy="14" r="1.8" fill="#6fe6ff"/></symbol>
   </defs>
 </svg>
 
 <canvas id="c"></canvas>
-<!-- Tiny silent looping video: a backup way to stop the iPhone screen from sleeping (from NoSleep.js, MIT). -->
 <video id="awake" playsinline muted loop aria-hidden="true" style="position:fixed;width:1px;height:1px;opacity:0;pointer-events:none"><source type="video/mp4" src="data:video/mp4;base64,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"><source type="video/webm" src="data:video/webm;base64,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"></video>
 
 <div id="intro">
+  <canvas id="halo" aria-hidden="true"></canvas>
   <h1>Music Visualiser</h1>
-  <p>Play music from another device nearby, such as a computer, TV or speaker, then tap Start and allow the microphone. Safari pauses music playing on this phone while the mic is on.</p>
-  <button id="start" type="button">START</button>
-  <p id="tips">Tap right for the next look, left for the previous one.<br>Press and hold for settings.</p>
+  <p>Play music from another device nearby, such as a computer, TV or speaker, then tap the eye and allow the microphone. Safari pauses music playing on this phone while the mic is on.</p>
+  <button id="start" type="button" aria-label="Start">
+    <svg viewBox="0 0 190 92" aria-hidden="true">
+      <path d="M6 46C40 6 150 6 184 46C150 86 40 86 6 46Z" fill="rgba(10,6,30,.82)" stroke="url(#leaf)" stroke-width="2"/>
+      <path d="M18 46C50 16 140 16 172 46C140 76 50 76 18 46Z" fill="none" stroke="#6fe6ff" stroke-opacity=".55" stroke-width="1"/>
+      <circle cx="95" cy="46" r="27" fill="url(#iris)" opacity=".55"/>
+      <circle cx="95" cy="46" r="27" fill="none" stroke="url(#leaf)" stroke-width="1.4"/>
+      <g stroke="#f0c76e" stroke-opacity=".7" stroke-width="1"><path d="M95 2v10M95 80v10M60 6l3 9M130 6l-3 9M60 86l3-9M130 86l-3-9"/></g>
+    </svg>
+    <span>BEGIN</span>
+  </button>
+  <p id="tips">Tap right for the next vision, left for the previous one.<br>Press and hold for settings.</p>
   <div id="err" hidden></div>
-  <div id="ver">Version 11</div>
+  <div id="ver">Version 12</div>
 </div>
 
 <div id="vol" hidden><div id="volNum">0</div><div id="volLbl">LEVEL</div></div>
@@ -138,44 +165,116 @@
 
 <div id="menuWrap" hidden>
   <div id="menu" role="dialog" aria-labelledby="menuTitle">
-    <h2 id="menuTitle">Settings</h2>
-    <div id="menuName"></div>
+    <svg class="corner tl" aria-hidden="true"><use href="#filigree"/></svg><svg class="corner tr" aria-hidden="true"><use href="#filigree"/></svg>
+    <svg class="corner bl" aria-hidden="true"><use href="#filigree"/></svg><svg class="corner br" aria-hidden="true"><use href="#filigree"/></svg>
+    <div id="menuHead">
+      <svg viewBox="0 0 64 26" aria-hidden="true"><path d="M2 13C14 1 50 1 62 13C50 25 14 25 2 13Z" fill="none" stroke="url(#leaf)" stroke-width="1.4"/><circle cx="32" cy="13" r="7" fill="url(#iris)"/><circle cx="32" cy="13" r="2.2" fill="#05030f"/></svg>
+      <h2 id="menuTitle">Settings</h2>
+      <div id="menuName"></div>
+    </div>
     <div class="rate">
-      <button id="down" class="blob" type="button">
-        <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M17 8h17a4 4 0 0 1 4 3.4l2.4 14A4 4 0 0 1 36.5 30H28l1.6 6.6c.6 2.6-1.4 5.1-4 5.1L17 28V8Zm-9 0h5v20H8z" fill="none" stroke="url(#acid)" stroke-width="3.2" stroke-linejoin="round"/></svg>
+      <button id="down" class="seal" type="button">
+        <svg viewBox="0 0 64 40" aria-hidden="true">
+          <path d="M6 18C20 34 44 34 58 18" fill="none" stroke="url(#leaf)" stroke-width="2.2" stroke-linecap="round"/>
+          <path d="M14 26l-4 6M24 30l-2 7M32 31v7M40 30l2 7M50 26l4 6" stroke="#f0c76e" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M10 14C22 6 42 6 54 14" fill="none" stroke="#6fe6ff" stroke-opacity=".45" stroke-width="1"/>
+        </svg>
         Hide this one
       </button>
-      <button id="up" class="blob" type="button">
-        <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M17 40h17a4 4 0 0 0 4-3.4l2.4-14A4 4 0 0 0 36.5 18H28l1.6-6.6c.6-2.6-1.4-5.1-4-5.1L17 20v20Zm-9 0h5V20H8z" fill="none" stroke="url(#acid)" stroke-width="3.2" stroke-linejoin="round"/></svg>
+      <button id="up" class="seal" type="button">
+        <svg viewBox="0 0 64 40" aria-hidden="true">
+          <path d="M4 20C18 4 46 4 60 20C46 36 18 36 4 20Z" fill="none" stroke="url(#leaf)" stroke-width="2.2"/>
+          <circle cx="32" cy="20" r="9" fill="url(#iris)"/><circle cx="32" cy="20" r="3" fill="#05030f"/>
+          <path d="M32 0v5M32 35v5M14 3l3 5M50 3l-3 5M14 37l3-5M50 37l-3-5" stroke="#6fe6ff" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
         <span id="upLbl">Love it</span>
       </button>
     </div>
     <div class="row">
-      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5l3.8 7.8 8.5 1.2-6.2 6 1.5 8.5L16 23l-7.6 4 1.5-8.5-6.2-6 8.5-1.2z" fill="none" stroke="url(#acid)" stroke-width="2.4" stroke-linejoin="round"/></svg>
-      <label for="topOnly">Top rated only <small id="topCount" style="color:var(--dim)"></small></label><input id="topOnly" class="switch" type="checkbox">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><g fill="none" stroke="url(#leaf)" stroke-width="1.3"><circle cx="16" cy="16" r="6"/><circle cx="16" cy="10" r="6"/><circle cx="16" cy="22" r="6"/><circle cx="10.8" cy="13" r="6"/><circle cx="21.2" cy="13" r="6"/><circle cx="10.8" cy="19" r="6"/><circle cx="21.2" cy="19" r="6"/></g><circle cx="16" cy="16" r="12.5" fill="none" stroke="#6fe6ff" stroke-width="1"/></svg>
+      <label for="topOnly">Top rated only <small id="topCount"></small></label><input id="topOnly" class="switch" type="checkbox">
     </div>
     <div class="row">
-      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 27s-11-6.6-11-14a6 6 0 0 1 11-3.3A6 6 0 0 1 27 13c0 7.4-11 14-11 14Z" fill="none" stroke="url(#acid)" stroke-width="2.6" stroke-linejoin="round"/></svg>
-      <label for="favOnly">Only looks I love</label><input id="favOnly" class="switch" type="checkbox">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 30c-6 0-10-4-10-9.5C6 14 12 11 12 4c4 3 6 7 5.5 11C20 13 21 10 20.5 7 25 11 26 16 26 20.5 26 26 22 30 16 30Z" fill="none" stroke="url(#leaf)" stroke-width="1.8" stroke-linejoin="round"/><path d="M16 29c-3 0-4.5-2-4.5-4.5 0-3 3-4.5 4.5-8 1.5 3.5 4.5 5 4.5 8 0 2.5-1.5 4.5-4.5 4.5Z" fill="#6fe6ff" fill-opacity=".35" stroke="#6fe6ff" stroke-width="1"/></svg>
+      <label for="favOnly">Only visions I love</label><input id="favOnly" class="switch" type="checkbox">
     </div>
     <div class="row">
-      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M3 16h4l3-8 4 16 4-12 3 8 2-4h6" fill="none" stroke="url(#acid)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="3" fill="#6fe6ff"/><g fill="none" stroke="url(#leaf)" stroke-width="1.6" stroke-linecap="round"><path d="M10 10a8.5 8.5 0 0 0 0 12M22 10a8.5 8.5 0 0 1 0 12"/><path d="M6 6a14 14 0 0 0 0 20M26 6a14 14 0 0 1 0 20" stroke-opacity=".7"/></g></svg>
       <label for="showMeter">Show mic level</label><input id="showMeter" class="switch" type="checkbox">
     </div>
     <div class="row timeRow">
-      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M12 6a4 4 0 0 1 8 0v9a4 4 0 0 1-8 0zM7 14a9 9 0 0 0 18 0M16 23v5" fill="none" stroke="url(#acid)" stroke-width="2.6" stroke-linecap="round"/></svg>
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 16m0-1.5a1.5 1.5 0 1 1-1.5 1.5c0-3 2.5-5 5-5a6 6 0 0 1 6 6c0 5-4 8.5-9 8.5A10.5 10.5 0 0 1 6 15C6 8 11.5 3 18.5 3" fill="none" stroke="url(#leaf)" stroke-width="1.7" stroke-linecap="round"/><circle cx="18.5" cy="3" r="1.6" fill="#6fe6ff"/></svg>
       <label for="sens">Mic sensitivity</label><output id="sensOut" for="sens"></output>
       <input id="sens" type="range" min="1" max="10" step="1">
       <div class="ends"><span>Less sensitive</span><span>More sensitive</span></div>
     </div>
     <div class="row timeRow">
-      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4a12 12 0 1 0 12 12M16 4a12 12 0 0 1 12 12M16 9v7l5 3" fill="none" stroke="url(#acid)" stroke-width="2.6" stroke-linecap="round"/></svg>
-      <label for="secs">Time per look</label><output id="secsOut" for="secs"></output>
+      <svg viewBox="0 0 32 32" aria-hidden="true"><g fill="none" stroke="url(#leaf)" stroke-width="1.4"><circle cx="16" cy="16" r="13"/><circle cx="16" cy="16" r="8.5" stroke-dasharray="2 2.4"/></g><path d="M16 16V8M16 16l5 3" stroke="#6fe6ff" stroke-width="1.8" stroke-linecap="round"/><circle cx="16" cy="16" r="1.8" fill="#f0c76e"/></svg>
+      <label for="secs">Time per vision</label><output id="secsOut" for="secs"></output>
       <input id="secs" type="range" min="2" max="60" step="1">
     </div>
-    <button id="close" type="button">BACK TO THE TRIP</button>
+    <button id="close" type="button">RETURN TO THE VISION</button>
   </div>
 </div>
+
+<script>
+// Start-screen mandala: rotating sacred geometry around a central eye, drawn in gold and electric blue.
+(() => {
+  const cv = document.getElementById('halo'), g = cv.getContext('2d'), intro = document.getElementById('intro');
+  const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let W, H, R, CX, CY, raf;
+  // The mandala is centred on the Begin eye, so the button sits at the heart of it.
+  function fit() {
+    const pr = Math.min(devicePixelRatio || 1, 2), b = document.getElementById('start').getBoundingClientRect();
+    W = cv.width = innerWidth * pr; H = cv.height = innerHeight * pr; R = Math.min(W, H) * 0.47;
+    CX = (b.left + b.width / 2) * pr; CY = (b.top + b.height / 2) * pr;
+  }
+  function ring(r, n, rot, color, w) {
+    g.strokeStyle = color; g.lineWidth = w;
+    for (let i = 0; i < n; i++) { const a = rot + i * Math.PI * 2 / n; g.beginPath(); g.arc(Math.cos(a) * r, Math.sin(a) * r, r, 0, Math.PI * 2); g.stroke(); }
+  }
+  function draw(t) {
+    if (intro.hidden) { cancelAnimationFrame(raf); return; }
+    const s = t / 1000;
+    g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H);
+    g.translate(CX, CY);
+    g.globalCompositeOperation = 'lighter';
+    g.shadowBlur = 12 * (W / innerWidth);
+    // Flower-of-life petals
+    g.shadowColor = 'rgba(240,199,110,.8)';
+    ring(R * 0.32, 6, s * 0.05, 'rgba(240,199,110,.30)', 1.2);
+    ring(R * 0.16, 12, -s * 0.08, 'rgba(240,199,110,.22)', 1);
+    // Energy lattice: rays and concentric rings in aura blue
+    g.shadowColor = 'rgba(111,230,255,.9)';
+    g.strokeStyle = 'rgba(111,230,255,.18)'; g.lineWidth = 1;
+    for (let i = 0; i < 48; i++) { const a = i * Math.PI / 24 + s * 0.02; g.beginPath(); g.moveTo(Math.cos(a) * R * 0.2, Math.sin(a) * R * 0.2); g.lineTo(Math.cos(a) * R * 1.4, Math.sin(a) * R * 1.4); g.stroke(); }
+    for (let k = 1; k <= 5; k++) {
+      const r = R * (0.62 + k * 0.17 + 0.02 * Math.sin(s * 0.9 + k));
+      g.strokeStyle = k % 2 ? 'rgba(111,230,255,.22)' : 'rgba(169,139,255,.2)'; g.beginPath(); g.arc(0, 0, r, 0, Math.PI * 2); g.stroke();
+    }
+    // Ring of small eyes
+    g.shadowColor = 'rgba(240,199,110,.9)';
+    for (let i = 0; i < 12; i++) {
+      const a = i * Math.PI / 6 - s * 0.04, x = Math.cos(a) * R * 0.86, y = Math.sin(a) * R * 0.86, e = R * 0.06;
+      g.save(); g.translate(x, y); g.rotate(a + Math.PI / 2);
+      g.strokeStyle = 'rgba(240,199,110,.55)'; g.lineWidth = 1.2;
+      g.beginPath(); g.moveTo(-e, 0); g.quadraticCurveTo(0, -e * 0.9, e, 0); g.quadraticCurveTo(0, e * 0.9, -e, 0); g.stroke();
+      g.fillStyle = 'rgba(111,230,255,.6)'; g.beginPath(); g.arc(0, 0, e * 0.28, 0, Math.PI * 2); g.fill();
+      g.restore();
+    }
+    // Soft breathing halo behind the Begin eye
+    const glow = R * 0.55 * (1 + 0.05 * Math.sin(s * 1.6));
+    const gr = g.createRadialGradient(0, 0, 0, 0, 0, glow);
+    gr.addColorStop(0, 'rgba(111,230,255,.22)'); gr.addColorStop(0.5, 'rgba(90,59,214,.12)'); gr.addColorStop(1, 'rgba(26,15,74,0)');
+    g.shadowBlur = 0; g.fillStyle = gr; g.beginPath(); g.arc(0, 0, glow, 0, Math.PI * 2); g.fill();
+    g.globalCompositeOperation = 'source-over';
+    if (!still) raf = requestAnimationFrame(draw);
+  }
+  addEventListener('resize', fit);
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(fit); fit();
+  raf = requestAnimationFrame(draw);
+})();
+</script>
 
 <script src="https://cdn.jsdelivr.net/npm/butterchurn@2.6.7/lib/butterchurn.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/butterchurn-presets@2.4.7/lib/butterchurnPresets.min.js"></script>
@@ -245,7 +344,7 @@
   }
 
   function prev() {
-    if (histPos <= 0) { toast('This is the first look'); return; }
+    if (histPos <= 0) { toast('This is the first vision'); return; }
     histPos--; play(history[histPos], blendFor());
   }
 
@@ -374,7 +473,7 @@
         lastVol = t;
         const v = Math.round(volSmooth);
         $('volNum').textContent = v;
-        $('volNum').style.color = micTrack && micTrack.muted ? 'var(--warn)' : v < 5 ? 'var(--dim)' : 'var(--lime)';
+        $('volNum').style.color = micTrack && micTrack.muted ? 'var(--warn)' : v < 5 ? 'var(--dim)' : 'var(--aura)';
       }
     }
 
@@ -412,7 +511,7 @@
     $('upLbl').textContent = liked.has(current) ? 'Loved' : 'Love it';
     $('favOnly').checked = favOnly;
     $('topOnly').checked = topOnly;
-    $('topCount').textContent = '(' + names.filter(n => isTop(n) && !hidden.has(n)).length + ' looks)';
+    $('topCount').textContent = '(' + names.filter(n => isTop(n) && !hidden.has(n)).length + ' visions)';
     $('showMeter').checked = showMeter;
     $('secs').value = secs;
     $('sens').value = sens;
@@ -425,8 +524,8 @@
   $('close').addEventListener('click', closeMenu);
   $('menuWrap').addEventListener('click', e => { if (e.target === $('menuWrap')) closeMenu(); });
   $('up').addEventListener('click', () => {
-    if (liked.has(current)) { liked.delete(current); toast('Removed from your loved looks'); if (!liked.size && favOnly) { favOnly = false; store.set('mv.favOnly', false); } }
-    else { liked.add(current); hidden.delete(current); sparse.delete(current); toast('Added to your loved looks'); }
+    if (liked.has(current)) { liked.delete(current); toast('Released from your loved visions'); if (!liked.size && favOnly) { favOnly = false; store.set('mv.favOnly', false); } }
+    else { liked.add(current); hidden.delete(current); sparse.delete(current); toast('Added to your loved visions'); }
     saveSets(); renderMenu();
   });
   $('down').addEventListener('click', () => {
@@ -438,7 +537,7 @@
     closeMenu(); next(1);
   });
   $('favOnly').addEventListener('change', e => {
-    if (e.target.checked && !liked.size) { e.target.checked = false; toast('Tap Love it on looks you like first'); return; }
+    if (e.target.checked && !liked.size) { e.target.checked = false; toast('Tap Love it on visions you like first'); return; }
     favOnly = e.target.checked; store.set('mv.favOnly', favOnly);
     history = history.slice(0, histPos + 1);
   });
